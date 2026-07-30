@@ -1,0 +1,10 @@
+# Python virtual environments
+.venv/
+venv/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+
+# Generated test fixtures (rebuild with scripts/gen_fixture.py)
+backend/fixtures/
