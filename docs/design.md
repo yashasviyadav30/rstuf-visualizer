@@ -22,6 +22,16 @@ Browser  ──HTTP──►  our backend  ──HTTP──►  signed metadata 
 The database is unsigned, private, and can change under us. The signed files
 are the only thing we can check, so they are the only thing we read.
 
+### Why a backend at all
+
+A TUF client for the browser exists (`tuf-js`), so the checking could in
+principle run client-side. A backend earns its place four ways: one cache
+serves every viewer instead of each browser re-fetching the repository; the
+browser talks to a single origin, so no cross-site setup is needed for the
+RSTUF API; size caps and timeouts are enforced somewhere the viewer cannot
+disable them; and the response shapes stay stable while the metadata format
+moves. It is also the one place a future write path can attach.
+
 ---
 
 ## 2. Three sets of addresses
@@ -31,9 +41,15 @@ Set A.
 
 | Set | Direction | Addresses |
 |---|---|---|
-| A | browser → our backend | `/overview`, `/roles/{role}`, `/artifacts`, `/status`, `/roots`, `/healthz` |
+| A | browser → our backend | `/api/v1/overview`, `/api/v1/roles/{role}`, `/api/v1/artifacts`, `/api/v1/status`, `/api/v1/roots` |
 | B | our backend → RSTUF API | `/api/v1/config/`, `/api/v1/bootstrap/`, `/api/v1/metadata/sign` |
 | C | our backend → storage | `timestamp.json`, `{version}.{role}.json` |
+
+Set A is versioned the way RSTUF's own API is: everything under `/api/v1/`,
+so a changed response shape can ship as `/api/v2/` beside the old one instead
+of breaking it. Only `/healthz` sits at the root, because probes are
+configured once and should never move. The version prefix also keeps API
+routes cleanly apart from the frontend, which owns every other path.
 
 Set C carries the trust picture and is checked. Set B carries live status and is
 not, because status is not a security claim.
@@ -87,6 +103,11 @@ ourselves.
 It runs on a worker thread because the library's network calls are
 synchronous. Awaiting it directly would stall every other request for the
 length of a fetch.
+
+Refreshes are also single-flight: when several requests miss the cache at
+once, one of them refreshes while the rest wait for its result behind a lock.
+However many browsers arrive together, the storage sees one fetch per cache
+window, and two refreshes never write the trust directory at the same time.
 
 `refresh()` does **not** load delegated roles. Those load on demand, which
 suits a screen that only shows them when asked.
@@ -219,12 +240,12 @@ OverviewResponse
 
 | Screen | Endpoint | Shows |
 |---|---|---|
-| roles table | `/overview` | every role with signers, threshold, expiry, status |
-| tree | `/overview` | the same data drawn as a graph |
-| role detail | `/roles/{role}` | keys, signatures, expiry, and a link to the raw file |
-| artifacts | `/artifacts` | path, hash and size, searchable and paged |
-| status | `/status` | whether the repository is ready, and what awaits signing |
-| root history | `/roots` | what changed between two versions of root |
+| roles table | `/api/v1/overview` | every role with signers, threshold, expiry, status |
+| tree | `/api/v1/overview` | the same data drawn as a graph |
+| role detail | `/api/v1/roles/{role}` | keys, signatures, expiry, and a link to the raw file |
+| artifacts | `/api/v1/artifacts` | path, hash and size, searchable and paged |
+| status | `/api/v1/status` | whether the repository is ready, and what awaits signing |
+| root history | `/api/v1/roots` | what changed between two versions of root |
 
 The table is the landing view because it is dense and scannable. The tree
 answers "who delegates to whom" at a glance.
@@ -273,6 +294,13 @@ Comparing two versions reports what changed: version and expiry, keys added,
 removed or altered, thresholds, which keys began signing, and which stopped.
 This is how a signer confirms a rotation went as intended.
 
+Old versions are fetched by their spec-defined names, `1.root.json` onward,
+and checked before anything is shown: the specification's rotation rule says
+version N must be signed to threshold by the keys of version N−1 *and* by its
+own, and the library's `verify_delegate` applies exactly that check to each
+step of the chain. An unverifiable version is shown as unverifiable, never as
+history.
+
 ### Drawing a tree that stays readable
 
 The tree is laid out by a hierarchical layout engine rather than by hand, so
@@ -295,6 +323,9 @@ Each row is a real mechanism, not an intention.
 | where the trust anchor lives | three ordered sources |
 | artifact path style | a setting, matching RSTUF's client |
 | where metadata lives | a setting, never a code path |
+| how responses are cached | callers see a two-method interface, so a shared store such as Redis can replace the in-process cache without touching them |
+| more than one repository | the metadata layer takes the repository as an argument rather than reading global state, so a second repository is added by configuration |
+| the browser contract | versioned under `/api/v1/`, so a new shape ships beside the old one |
 
 One rule inside the code: the tree builder iterates over what it finds and
 never names a role.
@@ -352,6 +383,13 @@ switched by `enabled`, as every other component there already is.
 `/healthz` answers for the orchestrator only. It reports that the process is
 running and says nothing about the repository, whose health appears on screen.
 
+The pod holds no state worth keeping. The trust directory and the response
+cache are both rebuilt from the trust anchor within seconds, so they live in
+ephemeral storage, replicas need nothing shared, and scaling is a replica
+count. TLS, authentication and rate limits belong to the ingress, which is
+where RSTUF's other services already put them; the service itself stays
+read-only and unauthenticated, like the repository it displays.
+
 ---
 
 ## 11. Layout
@@ -400,3 +438,7 @@ Windows refuses without Developer Mode. Containers are unaffected.
 **Status without files.** A repository can report itself ready while its
 storage is empty. The interface reports that plainly rather than treating it
 as a failure.
+
+**No metrics yet.** The service logs but does not export counters. Every
+request passes one middleware stack, so metrics attach there later without
+touching a route.
