@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
 """Application entry point.
 
 Builds the FastAPI application and attaches the API routes. Run it with::

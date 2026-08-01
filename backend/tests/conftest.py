@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
 """Shared fixtures for the test suite."""
 
 from __future__ import annotations
@@ -35,7 +39,10 @@ def symlinks_permitted() -> bool:
 
 requires_symlinks = pytest.mark.skipif(
     not symlinks_permitted(),
-    reason="the TUF client requires symbolic links; enable Developer Mode on Windows",
+    reason=(
+        "the TUF client requires symbolic links; "
+        "enable Developer Mode on Windows"
+    ),
 )
 
 requires_fixtures = pytest.mark.skipif(

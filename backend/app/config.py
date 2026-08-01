@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
 """Runtime configuration, read from environment variables.
 
 Nothing is hardcoded, so a single container image serves any deployment.

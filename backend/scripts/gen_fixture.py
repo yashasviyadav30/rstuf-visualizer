@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
 """Generate a small, correctly signed TUF repository for local testing.
 
 Creates three variants under ``fixtures/``:
@@ -26,7 +30,6 @@ from tuf.api.metadata import (
     Delegations,
     Metadata,
     MetaFile,
-    Role,
     Root,
     Snapshot,
     TargetFile,
@@ -42,7 +45,9 @@ BINS = ["bins-0", "bins-1"]
 
 
 def _expiry(days: int) -> datetime:
-    return datetime.now(timezone.utc).replace(microsecond=0) + timedelta(days=days)
+    return datetime.now(timezone.utc).replace(microsecond=0) + timedelta(
+        days=days
+    )
 
 
 def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
@@ -108,7 +113,9 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
         metadata = Metadata(payload)
         metadata.sign(signer)
         # Consistent snapshot: every file is version-prefixed except timestamp.
-        filename = "timestamp.json" if name == "timestamp" else f"1.{name}.json"
+        filename = (
+            "timestamp.json" if name == "timestamp" else f"1.{name}.json"
+        )
         metadata.to_file(str(out_dir / filename), JSONSerializer())
 
     # A client bootstraps from this copy, so keep an unprefixed one too.
@@ -116,7 +123,7 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
 
 
 def _tamper(source: Path, destination: Path) -> None:
-    """Copy a good repository, then edit a signed file without re-signing it."""
+    """Copy a repository, then edit a signed file without re-signing."""
     if destination.exists():
         shutil.rmtree(destination)
     shutil.copytree(source, destination)

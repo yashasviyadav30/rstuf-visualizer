@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
 """Response shapes returned to the browser.
 
 These are deliberately narrower than the underlying TUF metadata. The browser
@@ -35,7 +39,8 @@ class RoleSummary(BaseModel):
     version: int
     expires: str = Field(description="ISO-8601 expiry timestamp")
     threshold: int | None = Field(
-        default=None, description="Signatures required, when declared by a parent"
+        default=None,
+        description="Signatures required, when declared by a parent",
     )
     key_count: int | None = Field(
         default=None, description="Keys authorised to sign this role"

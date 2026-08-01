@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
 """Fetch and verify a repository's TUF metadata.
 
 Verification is delegated to ``tuf.ngclient.Updater``, the client shipped with
@@ -91,7 +95,11 @@ def resolve_trusted_root(value: str, timeout: float = 10.0) -> bytes:
 
 def _status_for(metadata: Metadata, now: datetime) -> RoleStatus:
     """Classify a role that the client already accepted as correctly signed."""
-    return RoleStatus.EXPIRED if metadata.signed.expires < now else RoleStatus.VALID
+    return (
+        RoleStatus.EXPIRED
+        if metadata.signed.expires < now
+        else RoleStatus.VALID
+    )
 
 
 def _delegated_names(targets: Metadata) -> list[str]:
@@ -124,10 +132,16 @@ def _read_trust_directory(trust_dir: Path) -> list[RoleView]:
         try:
             metadata = Metadata.from_file(str(path))
         except Exception:  # noqa: BLE001 - a cached file we cannot parse
-            logger.warning("Skipping unreadable cached metadata: %s", path.name)
+            logger.warning(
+                "Skipping unreadable cached metadata: %s", path.name
+            )
             continue
 
-        role = root.signed.roles.get(name) if root and name in TOP_LEVEL_ROLES else None
+        role = (
+            root.signed.roles.get(name)
+            if root and name in TOP_LEVEL_ROLES
+            else None
+        )
 
         views.append(
             RoleView(
@@ -137,15 +151,22 @@ def _read_trust_directory(trust_dir: Path) -> list[RoleView]:
                 status=_status_for(metadata, now),
                 threshold=role.threshold if role else None,
                 key_count=len(role.keyids) if role else None,
-                delegates_to=_delegated_names(metadata) if name == "targets" else [],
+                delegates_to=(
+                    _delegated_names(metadata) if name == "targets" else []
+                ),
             )
         )
 
     return views
 
 
-def _refresh(trust_dir: Path, metadata_url: str, bootstrap: bytes | None) -> None:
-    """Run the client's verification pass. Blocking, so keep it off the loop."""
+def _refresh(
+    trust_dir: Path, metadata_url: str, bootstrap: bytes | None
+) -> None:
+    """Run the verification pass.
+
+    Blocking, so keep it off the event loop.
+    """
     updater = Updater(
         metadata_dir=str(trust_dir),
         metadata_base_url=metadata_url,

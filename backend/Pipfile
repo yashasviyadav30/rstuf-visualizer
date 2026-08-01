@@ -1,0 +1,28 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+pydantic-settings = "*"
+tuf = "*"
+securesystemslib = {extras = ["crypto"], version = "*"}
+httpx = "*"
+
+[dev-packages]
+black = "*"
+isort = "*"
+flake8 = "*"
+bandit = "*"
+tox = "*"
+coverage = "*"
+pytest = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
+pytest-xdist = "*"
+pre-commit = "*"
+
+[requires]
+python_version = "3.13"

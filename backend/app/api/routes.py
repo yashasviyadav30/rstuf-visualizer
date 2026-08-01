@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
 """HTTP endpoints exposed to the browser.
 
 Every route here is a GET. The visualizer reads a TUF repository and
