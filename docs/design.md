@@ -250,6 +250,10 @@ OverviewResponse
 The table is the landing view because it is dense and scannable. The tree
 answers "who delegates to whom" at a glance.
 
+A deployment normally points at one repository, set by its operator. Where a
+demo deployment wants visitors to explore, the landing page can offer example
+repositories to load, the way public TUF viewers do.
+
 When the repository is not ready, one short card replaces the table:
 
 | State | Card |
