@@ -1,16 +1,17 @@
 # Design
 
-How the visualizer reads a TUF repository, checks it, and shows it. Every fact
-here was checked against `tuf 7.0.0`, the RSTUF source, and a running RSTUF
-deployment.
+How the visualizer reads a TUF repository, checks it, shows it, and ships.
+
+Everything here was verified: against `tuf 7.0.0` and `fastapi 0.141.1` as
+installed, against RSTUF's own source, and against a running RSTUF deployment.
 
 ---
 
 ## 1. What the service does
 
-A browser asks our backend for a view of a repository. The backend fetches the
-repository's signed metadata, has `python-tuf` check it, shapes the result into
-small JSON, and returns it. It stores nothing and changes nothing.
+A browser asks for a view of a repository. The backend fetches the repository's
+signed metadata, has `python-tuf` check it, shapes the result into small JSON,
+and returns it. It stores nothing and changes nothing.
 
 ```
 Browser  ──HTTP──►  our backend  ──HTTP──►  signed metadata (storage)
@@ -30,7 +31,7 @@ Set A.
 
 | Set | Direction | Addresses |
 |---|---|---|
-| A | browser → our backend | `/overview`, `/roles/{role}`, `/artifacts`, `/status`, `/healthz` |
+| A | browser → our backend | `/overview`, `/roles/{role}`, `/artifacts`, `/status`, `/roots`, `/healthz` |
 | B | our backend → RSTUF API | `/api/v1/config/`, `/api/v1/bootstrap/`, `/api/v1/metadata/sign` |
 | C | our backend → storage | `timestamp.json`, `{version}.{role}.json` |
 
@@ -53,9 +54,9 @@ in order:
 Source 2 was confirmed against a live deployment: the config endpoint returns
 the complete signed root, so no operator has to paste anything.
 
-Trust-on-first-use is not offered. `python-tuf` removed it, and the client now
-requires an explicit `bootstrap` argument with no default, so the choice cannot
-be made by accident.
+Trust-on-first-use is not offered. The library removed it, and now requires an
+explicit `bootstrap` argument with no default, so the choice cannot be made by
+accident.
 
 One honest limit on source 2: the root arrives from the RSTUF API, a different
 service from the storage being checked. That is safer than taking the root from
@@ -65,13 +66,14 @@ the storage itself, and weaker than a root an operator hands over.
 
 ## 4. Reading the repository
 
-### The client does the checking
+### The library does the checking
 
 ```python
 updater = Updater(
     metadata_dir=str(trust_dir),
     metadata_base_url=settings.metadata_url,
     target_base_url=settings.artifacts_url,
+    fetcher=VisualizerFetcher(settings),
     config=updater_config,
     bootstrap=root_bytes,
 )
@@ -82,11 +84,27 @@ await asyncio.to_thread(updater.refresh)
 signatures, thresholds, expiry, and rollback. We never check metadata
 ourselves.
 
-It runs on a worker thread because the client's network calls are synchronous.
-Awaiting it directly would stall every other request for the length of a fetch.
+It runs on a worker thread because the library's network calls are
+synchronous. Awaiting it directly would stall every other request for the
+length of a fetch.
 
-`refresh()` does **not** load delegated roles. Those load on demand, which suits
-a screen that only shows them when asked.
+`refresh()` does **not** load delegated roles. Those load on demand, which
+suits a screen that only shows them when asked.
+
+### Our own network layer
+
+The library accepts a replacement fetcher, and that is where our own
+behaviour belongs:
+
+```python
+class VisualizerFetcher(FetcherInterface):
+    def _fetch(self, url: str) -> Iterator[bytes]:
+        ...
+```
+
+It carries our timeout, retries, request logging, and any headers a
+deployment behind a gateway needs. Swapping the transport later touches no
+other file.
 
 ### Client settings
 
@@ -103,10 +121,10 @@ UpdaterConfig(
 )
 ```
 
-The length caps bound how much we will read before giving up, which stops a
-storage server from feeding us an unbounded file. `prefix_targets_with_hash`
-must be configurable because RSTUF's own client reads it from a per-repository
-setting; getting it wrong breaks artifact paths. `app_user_agent` lets an
+The length caps bound how much we read before giving up, so a storage server
+cannot feed us an unbounded file. `prefix_targets_with_hash` must be
+configurable because RSTUF's own client reads it from a per-repository
+setting, and getting it wrong breaks artifact paths. `app_user_agent` lets an
 operator recognise us in their logs.
 
 ### Building the tree costs no extra fetches
@@ -115,16 +133,30 @@ After `refresh()`, the trust directory holds the checked files. The tree comes
 from three of them:
 
 ```
-root.json      → thresholds and key counts
+root.json      → thresholds, key counts, key names
 snapshot.json  → the version of every role, delegated ones included
 targets.json   → the delegation rule
 ```
 
-From the rule, `python-tuf` derives every delegated role name. A repository with
-`bit_length = 4` yields sixteen roles, `bins-0` through `bins-f`. Nothing is
-downloaded to learn this, and no name appears in our code.
+From the rule, the library derives every delegated role name. A repository
+with `bit_length = 4` yields sixteen roles, `bins-0` through `bins-f`. Nothing
+is downloaded to learn this, and no role name appears in our code.
 
-A bin's own contents load only when someone opens it.
+### Opening one delegated role
+
+A role's contents load only when someone opens it. The parent checks the
+child, using public interfaces:
+
+```python
+targets.signed.verify_delegate(name, child.signed_bytes, child.signatures)
+result = targets.signed.get_verification_result(
+    name, child.signed_bytes, child.signatures
+)
+```
+
+A role edited after signing is rejected with a message naming the shortfall,
+for example `bins-0 was signed by 0/1 keys`. A role that verifies yields its
+artifact list: path, length, and hashes.
 
 ---
 
@@ -141,7 +173,7 @@ A bin's own contents load only when someone opens it.
 | storage unreachable | `502` / `503` | nothing can be shown |
 | no trust anchor | `503` | nothing can be checked |
 
-The client's own error types map onto this cleanly:
+The library's own error types map onto this cleanly:
 
 ```
 RepositoryError            broken trust   → 200 with a status
@@ -156,27 +188,15 @@ DownloadError              broken system  → 502 / 503
 Confirmed against generated repositories. Real messages: `timestamp.json is
 expired`, and `targets was signed by 0/1 keys`.
 
-### Signature counts
+### Reading the API's replies carefully
 
-`Targets.get_verification_result()` returns which keys signed and which are
-missing, so a role can be reported as waiting on a named number of signatures
-rather than simply invalid.
+When nothing awaits signing, `/api/v1/metadata/sign` returns a message and no
+`data` field at all, so the absence of that field must be handled rather than
+assumed to be an empty list.
 
-### Opening one delegated role
-
-A role's own contents load only when someone opens it. The parent checks the
-child, using the same library and no internal interfaces:
-
-```python
-targets.signed.verify_delegate(name, child.signed_bytes, child.signatures)
-result = targets.signed.get_verification_result(
-    name, child.signed_bytes, child.signatures
-)
-```
-
-A role edited after signing is rejected with a message naming the shortfall,
-for example `bins-0 was signed by 0/1 keys`. A role that verifies yields its
-artifact list: path, length, and hashes.
+A repository can also report itself ready while its storage holds no files,
+because the two live in different places. The interface shows that as a
+repository which is ready but has no readable metadata, not as a crash.
 
 ---
 
@@ -187,6 +207,7 @@ stable shape rather than on the metadata format.
 
 ```
 RoleSummary   name, version, expires, threshold, key_count, status
+KeySummary    id, name, scheme, location, held_offline
 TreeEdge      parent, child
 OverviewResponse
               state, roles[], edges[], message
@@ -205,8 +226,17 @@ OverviewResponse
 | status | `/status` | whether the repository is ready, and what awaits signing |
 | root history | `/roots` | what changed between two versions of root |
 
-The table is the landing view because it is dense and scannable; the tree
+The table is the landing view because it is dense and scannable. The tree
 answers "who delegates to whom" at a glance.
+
+When the repository is not ready, one short card replaces the table:
+
+| State | Card |
+|---|---|
+| not set up | "Repository not set up yet" |
+| starting | "Setting up repository" |
+| awaiting signatures | "Waiting for signatures" |
+| ready | the table and tree |
 
 ### Naming keys instead of showing hashes
 
@@ -240,91 +270,133 @@ plainly.
 
 Root is the anchor, and rotating keys means publishing a new version of it.
 Comparing two versions reports what changed: version and expiry, keys added,
-removed or altered, thresholds, which keys now sign, and which stopped. This is
-how a signer confirms a rotation went as intended.
+removed or altered, thresholds, which keys began signing, and which stopped.
+This is how a signer confirms a rotation went as intended.
 
-When the repository is not ready, one short card replaces the table:
+### Drawing a tree that stays readable
 
-| State | Card |
-|---|---|
-| not set up | "Repository not set up yet" |
-| starting | "Setting up repository" |
-| awaiting signatures | "Waiting for signatures" |
-| ready | the table and tree |
+The tree is laid out by a hierarchical layout engine rather than by hand, so
+the shape follows the data. Delegated roles are collapsed behind a single node
+by default and expand on request, because a repository may hold sixteen of
+them or two hundred and fifty-six, and drawing them all at once helps nobody.
 
 ---
 
 ## 8. Designed to keep working
 
-Each row below is a real mechanism, not an intention.
+Each row is a real mechanism, not an intention.
 
 | What can differ between repositories | How the code copes |
 |---|---|
 | number of delegated roles | derived from the rule, any count |
 | named roles instead of a rule | both forms already handled |
-| depth of delegation | followed by the client, bounded by a setting |
-| the network itself | replaceable through the client's fetcher interface |
+| depth of delegation | followed by the library, bounded by a setting |
+| the network itself | replaceable through the fetcher interface |
 | where the trust anchor lives | three ordered sources |
 | artifact path style | a setting, matching RSTUF's client |
 | where metadata lives | a setting, never a code path |
 
-One rule inside the code: the tree builder iterates over whatever it finds and
+One rule inside the code: the tree builder iterates over what it finds and
 never names a role.
 
-Write operations stay out. When they arrive they attach at the backend, which
-is the single place a browser request already passes through.
+Write operations stay out of scope. When they arrive they attach at the
+backend, which is the single place a browser request already passes through.
 
 ---
 
-## 9. Deployment
+## 9. Packaging
 
-The frontend is built into static files that the backend serves, so the whole
-tool is one image and the page and its data share an origin.
+The frontend is built to static files, which the backend serves. FastAPI
+offers this directly:
+
+```python
+app.frontend("/", directory="dist")
+```
+
+API routes are matched first; the frontend is reached only when nothing else
+matched. One image, one origin, and no cross-site problem to solve.
+
+The image is built in stages, matching the pattern used by RSTUF's own
+services: dependencies resolved in a builder stage, then only the installed
+packages and the application copied into a slim final image.
 
 ```
-build  →  one image  →  ghcr.io  →  Helm chart  →  rstuf-demo
+frontend build ─┐
+                ├─►  one image  ─►  ghcr.io  ─►  Helm chart  ─►  rstuf-demo
+backend       ──┘
 ```
 
-The chart follows the shape used by RSTUF's existing charts: a deployment,
-service, ingress, service account, autoscaler, and a connection test, with
-settings supplied through values.
+---
+
+## 10. Deployment
+
+The chart follows the shape of RSTUF's existing charts, so an operator meets
+nothing unfamiliar:
+
+```
+templates/
+├── deployment.yaml       image, probes, environment, security context
+├── service.yaml
+├── ingress.yaml
+├── serviceaccount.yaml
+├── hpa.yaml
+├── _helpers.tpl
+├── NOTES.txt
+└── tests/test-connection.yaml
+```
+
+Settings arrive as environment variables declared in values, the same way
+RSTUF passes its own. Adding the chart to the demo is one dependency entry,
+switched by `enabled`, as every other component there already is.
 
 `/healthz` answers for the orchestrator only. It reports that the process is
 running and says nothing about the repository, whose health appears on screen.
 
 ---
 
-## 10. Layout
+## 11. Layout
 
 ```
 backend/
 ├── app/
-│   ├── main.py          builds the application
+│   ├── main.py          builds the application, serves the frontend
 │   ├── config.py        settings, read once at startup
 │   ├── cache.py         short-lived reuse of built responses
 │   ├── api/routes.py    the endpoints
 │   ├── tuf/
 │   │   ├── fetcher.py   our network layer
-│   │   ├── trust.py     owns the client
+│   │   ├── trust.py     owns the library's client
 │   │   └── read.py      checked files → responses
 │   ├── rstuf/client.py  the read-only API calls
 │   └── models/schemas.py the response shapes
-├── scripts/             local test repositories
+├── scripts/             generates local test repositories
 └── tests/
+frontend/                built at image time, served by the backend
 ```
 
 ---
 
-## 11. Known limits
+## 12. Working on it
 
-**Which role expired.** When checking stops, the client names the first problem
-it met. Naming every affected role means reading each file's date separately,
-which we do for files already saved.
+Three repositories with signed metadata are generated locally: one valid, one
+expired, one edited after signing. They are built with real keys, so the
+metadata layer is exercised against genuine signatures rather than
+placeholders.
 
-**Windows.** The client caches the trust anchor behind a symbolic link, which
+Tests that need the TUF client skip themselves where the platform cannot
+support it, and state why, so a green run never hides a gap.
+
+---
+
+## 13. Known limits
+
+**Which role expired.** When checking stops, the library names the first
+problem it met. Naming every affected role means reading each file's date
+separately, which we do for files already saved.
+
+**Windows.** The library caches the trust anchor behind a symbolic link, which
 Windows refuses without Developer Mode. Containers are unaffected.
 
-**Status without files.** A repository can report itself ready while its storage
-is empty, because the two live in different places. The interface shows this as
-a repository that is ready but has no readable metadata, rather than as a
-failure.
+**Status without files.** A repository can report itself ready while its
+storage is empty. The interface reports that plainly rather than treating it
+as a failure.
