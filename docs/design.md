@@ -162,6 +162,22 @@ expired`, and `targets was signed by 0/1 keys`.
 missing, so a role can be reported as waiting on a named number of signatures
 rather than simply invalid.
 
+### Opening one delegated role
+
+A role's own contents load only when someone opens it. The parent checks the
+child, using the same library and no internal interfaces:
+
+```python
+targets.signed.verify_delegate(name, child.signed_bytes, child.signatures)
+result = targets.signed.get_verification_result(
+    name, child.signed_bytes, child.signatures
+)
+```
+
+A role edited after signing is rejected with a message naming the shortfall,
+for example `bins-0 was signed by 0/1 keys`. A role that verifies yields its
+artifact list: path, length, and hashes.
+
 ---
 
 ## 6. What the browser receives
@@ -187,9 +203,45 @@ OverviewResponse
 | role detail | `/roles/{role}` | keys, signatures, expiry, and a link to the raw file |
 | artifacts | `/artifacts` | path, hash and size, searchable and paged |
 | status | `/status` | whether the repository is ready, and what awaits signing |
+| root history | `/roots` | what changed between two versions of root |
 
 The table is the landing view because it is dense and scannable; the tree
 answers "who delegates to whom" at a glance.
+
+### Naming keys instead of showing hashes
+
+RSTUF records a readable name on every key, and where an online key lives:
+
+```
+x-rstuf-key-name        root_key_1, root_key_2, online_key
+x-rstuf-online-key-uri  awskms:alias/aws-test-key
+```
+
+Showing those instead of a 64-character identifier turns an unreadable list
+into something an operator recognises. Where the field is absent, the
+identifier is shown, shortened.
+
+### Making the online and offline split visible
+
+A typical repository protects root with several offline keys and signs
+everything else with one shared online key:
+
+```
+root                     root_key_1 + root_key_2   offline, threshold 2
+targets, timestamp,      online_key                online, threshold 1
+snapshot, and the bins
+```
+
+That arrangement is the security model, and raw metadata hides it. Marking
+each key as offline or online, and showing which roles share one, states it
+plainly.
+
+### Comparing versions of root
+
+Root is the anchor, and rotating keys means publishing a new version of it.
+Comparing two versions reports what changed: version and expiry, keys added,
+removed or altered, thresholds, which keys now sign, and which stopped. This is
+how a signer confirms a rotation went as intended.
 
 When the repository is not ready, one short card replaces the table:
 
