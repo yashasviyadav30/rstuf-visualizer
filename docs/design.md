@@ -109,6 +109,11 @@ once, one of them refreshes while the rest wait for its result behind a lock.
 However many browsers arrive together, the storage sees one fetch per cache
 window, and two refreshes never write the trust directory at the same time.
 
+Nothing here runs on a timer. The client checks expiry when it is called, and
+it is called when a browser asks and the cache has gone stale, so the work
+follows demand. A page left open therefore asks again on an interval of its
+own, which stays cheap because the cache absorbs it.
+
 `refresh()` does **not** load delegated roles. Those load on demand, which
 suits a screen that only shows them when asked.
 
@@ -218,6 +223,19 @@ assumed to be an empty list.
 A repository can also report itself ready while its storage holds no files,
 because the two live in different places. The interface shows that as a
 repository which is ready but has no readable metadata, not as a crash.
+
+### What an expired role actually means
+
+RSTUF's worker renews metadata on its own. A scheduled task runs every five
+minutes, and any online role within an hour of expiring gets its version and
+expiry date bumped and is signed again.
+
+So in a healthy deployment expiry should never be visible. When this service
+does show an expired role, the metadata is not merely stale: the worker that
+renews it has stopped or is failing. The interface says so, which makes an
+expired badge a warning about the deployment rather than a note about a file.
+
+Renewal belongs to the worker. This service only reports, and never writes.
 
 ---
 
