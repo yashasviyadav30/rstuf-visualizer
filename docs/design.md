@@ -54,6 +54,16 @@ routes cleanly apart from the frontend, which owns every other path.
 Set C carries the trust picture and is checked. Set B carries live status and is
 not, because status is not a security claim.
 
+The division that matters: **no metadata file is ever fetched by a call we
+write.** Set C is a plain base URL handed to the client, which fetches and
+checks every file behind it. Set B never carries metadata. It answers
+questions the metadata cannot: whether the repository has been bootstrapped,
+what is waiting to be signed, and which readable name belongs to a key.
+
+The single exception proves the rule. The trust anchor arrives through Set B,
+because trust cannot be bootstrapped by the files being checked. The client
+requires those bytes to be handed to it and never fetches them itself.
+
 ---
 
 ## 3. Getting the trust anchor
@@ -444,7 +454,19 @@ metadata layer is exercised against genuine signatures rather than
 placeholders.
 
 Tests that need the TUF client skip themselves where the platform cannot
-support it, and state why, so a green run never hides a gap.
+support it, and state why, so a green run never hides a gap. The whole suite
+passes on Linux, which is where the service actually runs; on Windows the six
+client tests skip and the rest pass.
+
+Verified end to end against a local URL, with the client pointed at
+`http://127.0.0.1:PORT/` and no API in the path:
+
+```
+good       root, snapshot, targets, timestamp all valid;
+           targets delegates to bins-0, bins-1
+expired    verification stopped: timestamp.json is expired
+tampered   verification stopped: targets was signed by 0/1 keys
+```
 
 ---
 
