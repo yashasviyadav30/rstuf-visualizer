@@ -15,6 +15,9 @@ job, reached with the operator's credentials, not ours.
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any
@@ -24,6 +27,30 @@ import httpx
 from app.models.schemas import RepositoryState
 
 logger = logging.getLogger(__name__)
+
+
+def _root_bytes(value: Any) -> bytes:
+    """Turn a published trust anchor into root metadata bytes.
+
+    The API sends the document itself; a configuration file holds it base64
+    encoded. Anything that is not valid base64 is taken to be the document
+    already, which is the case the API exercises.
+    """
+    if isinstance(value, (dict, list)):
+        return json.dumps(value).encode("utf-8")
+
+    if isinstance(value, bytes):
+        return value
+
+    text = str(value).strip()
+    if text.startswith("{"):
+        return text.encode("utf-8")
+
+    try:
+        return base64.b64decode(text, validate=True)
+    except (binascii.Error, ValueError):
+        return text.encode("utf-8")
+
 
 # RSTUF reports how far a ceremony has progressed. Anything else, including
 # no answer at all, means the repository is not ready to be drawn.
@@ -85,14 +112,22 @@ class RstufClient:
             return {}
         return payload.get("data") or {}
 
-    async def trusted_root(self) -> str | None:
+    async def trusted_root(self) -> bytes | None:
         """Return the trust anchor RSTUF publishes, when it publishes one.
 
         Taking the anchor from the API is weaker than an operator handing it
         over, because it arrives from the same deployment. It is stronger than
         taking it from the storage being checked, and it needs no setup.
+
+        Two forms are accepted. The API sends the root metadata itself, as
+        JSON, while the RSTUF client's own configuration file holds it base64
+        encoded. Both are the same document, so both are read rather than one
+        being declared correct.
         """
-        return (await self.settings()).get("trusted_root")
+        value = (await self.settings()).get("trusted_root")
+        if value is None:
+            return None
+        return _root_bytes(value)
 
     async def awaiting_signatures(self) -> list[str]:
         """Name the roles that still need signatures.

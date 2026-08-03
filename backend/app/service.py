@@ -103,9 +103,7 @@ class VisualizerService:
             published = await self._rstuf.trusted_root()
             if published:
                 logger.info("Using the trust anchor published by RSTUF")
-                return resolve_trusted_root(
-                    published, self._settings.request_timeout_seconds
-                )
+                return published
 
         raise TrustAnchorMissingError(
             "No trust anchor is available. Set RSTUF_TRUSTED_ROOT, or point "
