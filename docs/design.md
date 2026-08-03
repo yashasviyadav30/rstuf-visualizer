@@ -200,6 +200,11 @@ A role edited after signing is rejected with a message naming the shortfall,
 for example `bins-0 was signed by 0/1 keys`. A role that verifies yields its
 artifact list: path, length, and hashes.
 
+A failing delegated role is reported on its own rather than sinking the rest.
+Bins are siblings, not a chain: one expired bin says nothing about the other
+fifteen. Each carries its own status, so the tree shows exactly which one is
+in trouble instead of collapsing into a single failure.
+
 ---
 
 ## 5. Reporting what was found
@@ -477,6 +482,12 @@ Three repositories with signed metadata are generated locally: one valid, one
 expired, one edited after signing. They are built with real keys, so the
 metadata layer is exercised against genuine signatures rather than
 placeholders.
+
+Those files are served over HTTP by a small static server, which is the same
+arrangement production uses: the client is handed a URL, never a directory.
+Development therefore exercises the real path rather than a shortcut, and the
+compose file that starts the server doubles as the reference for how an
+operator puts a server in front of their own storage.
 
 Tests that need the TUF client skip themselves where the platform cannot
 support it, and state why, so a green run never hides a gap. The whole suite
