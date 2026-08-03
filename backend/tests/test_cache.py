@@ -1,0 +1,100 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
+"""Tests for the short-lived response cache."""
+
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from app.cache import TTLCache
+
+
+@pytest.mark.asyncio
+async def test_reuses_a_value_within_its_lifetime() -> None:
+    cache = TTLCache(ttl_seconds=60)
+    calls = 0
+
+    async def build() -> str:
+        nonlocal calls
+        calls += 1
+        return "built"
+
+    assert await cache.get_or_build("k", build) == "built"
+    assert await cache.get_or_build("k", build) == "built"
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_builds_again_once_the_entry_has_aged_out() -> None:
+    cache = TTLCache(ttl_seconds=0.01)
+    calls = 0
+
+    async def build() -> int:
+        nonlocal calls
+        calls += 1
+        return calls
+
+    await cache.get_or_build("k", build)
+    await asyncio.sleep(0.05)
+    await cache.get_or_build("k", build)
+
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_clearing_forces_the_next_request_to_rebuild() -> None:
+    cache = TTLCache(ttl_seconds=60)
+    calls = 0
+
+    async def build() -> int:
+        nonlocal calls
+        calls += 1
+        return calls
+
+    await cache.get_or_build("k", build)
+    cache.clear()
+    await cache.get_or_build("k", build)
+
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_concurrent_misses_share_one_build() -> None:
+    """Ten callers arriving together must cost one fetch, not ten.
+
+    This is the property that keeps a burst of viewers from turning into a
+    burst of requests against the storage server.
+    """
+    cache = TTLCache(ttl_seconds=60)
+    calls = 0
+
+    async def build() -> str:
+        nonlocal calls
+        calls += 1
+        await asyncio.sleep(0.02)
+        return "built"
+
+    results = await asyncio.gather(
+        *(cache.get_or_build("k", build) for _ in range(10))
+    )
+
+    assert results == ["built"] * 10
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_separate_keys_do_not_block_each_other() -> None:
+    cache = TTLCache(ttl_seconds=60)
+
+    async def build_a() -> str:
+        return "a"
+
+    async def build_b() -> str:
+        return "b"
+
+    assert await cache.get_or_build("a", build_a) == "a"
+    assert await cache.get_or_build("b", build_b) == "b"

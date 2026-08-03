@@ -23,6 +23,21 @@ class RoleStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
+class ExpiryBand(str, Enum):
+    """How close a role is to expiring.
+
+    Valid and expired alone hide the difference that matters. Timestamp is
+    renewed roughly daily, so in normal operation it sits in ``CRITICAL``;
+    calling that plain ``VALID`` until the moment it lapses discards the only
+    useful warning.
+    """
+
+    EXPIRED = "expired"
+    CRITICAL = "critical"
+    EXPIRING = "expiring"
+    VALID = "valid"
+
+
 class RepositoryState(str, Enum):
     """How far the repository has progressed through initialisation."""
 
@@ -32,12 +47,32 @@ class RepositoryState(str, Enum):
     AWAITING_SIGNATURES = "awaiting_signatures"
 
 
+class KeySummary(BaseModel):
+    """One signing key, named rather than shown as a bare identifier."""
+
+    keyid: str = Field(description="Full key identifier")
+    keyid_short: str = Field(description="First 8 characters, for display")
+    name: str = Field(description="Readable name, or the short identifier")
+    scheme: str = ""
+    online: bool = Field(
+        default=False,
+        description="True when RSTUF records an online key URI for it",
+    )
+    signs: list[str] = Field(
+        default_factory=list, description="Roles this key is authorised for"
+    )
+
+
 class RoleSummary(BaseModel):
-    """One node of the delegation tree."""
+    """One verified role, as shown in the table and the tree."""
 
     name: str
     version: int
     expires: str = Field(description="ISO-8601 expiry timestamp")
+    expires_in: str = Field(
+        default="", description="Readable distance to expiry"
+    )
+    band: ExpiryBand = ExpiryBand.VALID
     threshold: int | None = Field(
         default=None,
         description="Signatures required, when declared by a parent",
@@ -45,7 +80,21 @@ class RoleSummary(BaseModel):
     key_count: int | None = Field(
         default=None, description="Keys authorised to sign this role"
     )
+    key_names: list[str] = Field(default_factory=list)
     status: RoleStatus = RoleStatus.UNKNOWN
+
+
+class DelegatedSummary(BaseModel):
+    """A delegated role that has not been fetched.
+
+    Its name comes from the delegation rule and its version from snapshot, so
+    both are known without downloading the file. Everything else waits until
+    somebody opens it.
+    """
+
+    name: str
+    version: int | None = None
+    loaded: bool = False
 
 
 class TreeEdge(BaseModel):
@@ -55,12 +104,73 @@ class TreeEdge(BaseModel):
     child: str
 
 
+class ArtifactSummary(BaseModel):
+    """One artifact listed by a delegated role."""
+
+    path: str
+    length: int
+    hashes: dict[str, str] = Field(default_factory=dict)
+    role: str = Field(description="The delegated role listing it")
+
+
 class OverviewResponse(BaseModel):
     """Everything the initial page render needs."""
 
     state: RepositoryState
+    status: RoleStatus = RoleStatus.UNKNOWN
+    checked_at: str = Field(default="", description="When this was verified")
     roles: list[RoleSummary] = Field(default_factory=list)
+    delegated: list[DelegatedSummary] = Field(
+        default_factory=list,
+        description="Delegated roles, named but not yet fetched",
+    )
     edges: list[TreeEdge] = Field(default_factory=list)
+    verification_error: str | None = Field(
+        default=None, description="Why verification stopped, when it did"
+    )
     message: str | None = Field(
         default=None, description="Explanation shown when no tree is available"
     )
+
+
+class RoleDetailResponse(BaseModel):
+    """One role, opened."""
+
+    name: str
+    version: int
+    expires: str
+    expires_in: str = ""
+    band: ExpiryBand = ExpiryBand.VALID
+    status: RoleStatus = RoleStatus.UNKNOWN
+    threshold: int | None = None
+    signed_by: list[KeySummary] = Field(default_factory=list)
+    signatures_present: int | None = Field(
+        default=None, description="Valid signatures found on this role"
+    )
+    signature_note: str | None = Field(
+        default=None, description="Stated when a role is short of signatures"
+    )
+    delegates_to: list[str] = Field(default_factory=list)
+    artifacts: list[ArtifactSummary] = Field(default_factory=list)
+
+
+class ArtifactsResponse(BaseModel):
+    """A page of artifacts, gathered from delegated roles."""
+
+    total: int
+    page: int
+    page_size: int
+    artifacts: list[ArtifactSummary] = Field(default_factory=list)
+
+
+class StatusResponse(BaseModel):
+    """Live repository status, taken from the RSTUF API."""
+
+    available: bool = Field(
+        default=False, description="False when the RSTUF API cannot be reached"
+    )
+    state: RepositoryState = RepositoryState.NOT_INITIALISED
+    bootstrap: str | None = None
+    awaiting_signatures: list[str] = Field(default_factory=list)
+    keys: list[KeySummary] = Field(default_factory=list)
+    message: str | None = None

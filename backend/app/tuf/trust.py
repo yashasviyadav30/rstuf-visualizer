@@ -20,6 +20,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from tuf.api.exceptions import DownloadError, RepositoryError
@@ -42,6 +43,10 @@ class MetadataUnavailableError(RuntimeError):
     """
 
 
+class UnknownRoleError(LookupError):
+    """The requested role is not delegated by this repository."""
+
+
 @dataclass
 class RoleView:
     """One verified role, as read back from the trust directory."""
@@ -56,11 +61,31 @@ class RoleView:
 
 
 @dataclass
+class DelegatedView:
+    """One delegated role, fetched on request and checked by its parent."""
+
+    name: str
+    version: int
+    expires: datetime
+    status: RoleStatus
+    threshold: int
+    signed_count: int
+    signing_keyids: list[str] = field(default_factory=list)
+    delegates_to: list[str] = field(default_factory=list)
+    artifacts: list[tuple[str, int, dict[str, str]]] = field(
+        default_factory=list
+    )
+    note: str | None = None
+
+
+@dataclass
 class RepositoryView:
     """The whole repository, as far as it could be resolved."""
 
     roles: list[RoleView] = field(default_factory=list)
     verification_error: str | None = None
+    documents: dict[str, Metadata] = field(default_factory=dict)
+    delegated: dict[str, int | None] = field(default_factory=dict)
 
     @property
     def is_trustworthy(self) -> bool:
@@ -119,10 +144,36 @@ def _delegated_names(targets: Metadata) -> list[str]:
     return list(delegations.roles or [])
 
 
-def _read_trust_directory(trust_dir: Path) -> list[RoleView]:
+def _delegated_versions(
+    documents: dict[str, Metadata],
+) -> dict[str, int | None]:
+    """Name every delegated role, and pin its version, without fetching it.
+
+    The names come from the delegation rule in ``targets`` and the versions
+    from ``snapshot``. Both files are already verified, so a repository with
+    two hundred bins costs nothing to describe.
+    """
+    targets = documents.get("targets")
+    if targets is None:
+        return {}
+
+    snapshot = documents.get("snapshot")
+    meta = getattr(snapshot.signed, "meta", {}) if snapshot else {}
+
+    versions: dict[str, int | None] = {}
+    for name in _delegated_names(targets):
+        entry = meta.get(f"{name}.json")
+        versions[name] = getattr(entry, "version", None)
+    return versions
+
+
+def _read_trust_directory(
+    trust_dir: Path,
+) -> tuple[list[RoleView], dict[str, Metadata]]:
     """Describe every role the client verified and cached."""
     now = datetime.now(timezone.utc)
     views: list[RoleView] = []
+    documents: dict[str, Metadata] = {}
 
     root_path = trust_dir / "root.json"
     root = Metadata.from_file(str(root_path)) if root_path.exists() else None
@@ -137,6 +188,7 @@ def _read_trust_directory(trust_dir: Path) -> list[RoleView]:
             )
             continue
 
+        documents[name] = metadata
         role = (
             root.signed.roles.get(name)
             if root and name in TOP_LEVEL_ROLES
@@ -157,7 +209,7 @@ def _read_trust_directory(trust_dir: Path) -> list[RoleView]:
             )
         )
 
-    return views
+    return views, documents
 
 
 def _refresh(
@@ -201,8 +253,113 @@ async def load_repository(
         verification_error = str(exc)
         logger.info("Repository failed verification: %s", exc)
 
-    roles = _read_trust_directory(trust_dir)
+    roles, documents = _read_trust_directory(trust_dir)
     if not roles and verification_error:
         raise MetadataUnavailableError(verification_error)
 
-    return RepositoryView(roles=roles, verification_error=verification_error)
+    return RepositoryView(
+        roles=roles,
+        verification_error=verification_error,
+        documents=documents,
+        delegated=_delegated_versions(documents),
+    )
+
+
+def _delegated_url(
+    metadata_url: str, name: str, version: int | None, consistent: bool
+) -> str:
+    """Build the address of one delegated role's metadata file."""
+    base = metadata_url if metadata_url.endswith("/") else metadata_url + "/"
+    filename = quote(f"{name}.json", safe="")
+    if consistent and version is not None:
+        return f"{base}{version}.{filename}"
+    return f"{base}{filename}"
+
+
+def _fetch_delegated(
+    metadata_url: str,
+    view: RepositoryView,
+    name: str,
+    timeout: float,
+) -> DelegatedView:
+    """Fetch one delegated role and have its parent check it.
+
+    The parent holds the delegation rule, so the parent does the checking.
+    This uses the library's public verification interface, which also reports
+    how many of the required signatures were present.
+    """
+    # Whether the name is a role at all is settled before anything is
+    # fetched, so a nonsense name is answered as a nonsense name rather than
+    # as an infrastructure failure.
+    if name not in view.delegated:
+        raise UnknownRoleError(name)
+
+    targets = view.documents.get("targets")
+    if targets is None:
+        raise MetadataUnavailableError("targets metadata is not available")
+
+    root = view.documents.get("root")
+    consistent = bool(
+        getattr(root.signed, "consistent_snapshot", True) if root else True
+    )
+    url = _delegated_url(
+        metadata_url, name, view.delegated.get(name), consistent
+    )
+
+    try:
+        response = httpx.get(url, timeout=timeout)
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise MetadataUnavailableError(
+            f"could not fetch {name} from {url}"
+        ) from exc
+
+    child: Metadata = Metadata.from_bytes(response.content)
+
+    result = targets.signed.get_verification_result(
+        name, child.signed_bytes, child.signatures
+    )
+
+    now = datetime.now(timezone.utc)
+    if not result.verified:
+        status = RoleStatus.INVALID
+        note = (
+            f"{name} was signed by {len(result.signed)} of "
+            f"{result.threshold} required keys"
+        )
+    elif child.signed.expires < now:
+        status = RoleStatus.EXPIRED
+        note = None
+    else:
+        status = RoleStatus.VALID
+        note = None
+
+    artifacts = [
+        (path, target.length, dict(target.hashes))
+        for path, target in getattr(child.signed, "targets", {}).items()
+    ]
+
+    return DelegatedView(
+        name=name,
+        version=child.signed.version,
+        expires=child.signed.expires,
+        status=status,
+        threshold=result.threshold,
+        signed_count=len(result.signed),
+        signing_keyids=sorted(result.signed) + sorted(result.unsigned),
+        delegates_to=_delegated_names(child),
+        artifacts=sorted(artifacts),
+        note=note,
+    )
+
+
+async def load_delegated_role(
+    metadata_url: str,
+    view: RepositoryView,
+    name: str,
+    timeout: float = 10.0,
+) -> DelegatedView:
+    """Load one delegated role, off the event loop."""
+    return await asyncio.to_thread(
+        _fetch_delegated, metadata_url, view, name, timeout
+    )

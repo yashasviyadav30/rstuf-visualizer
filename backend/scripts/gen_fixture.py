@@ -10,6 +10,10 @@ Creates three variants under ``fixtures/``:
     expired/    same keys, but timestamp already past its expiry
     tampered/   a signed file edited after signing, so its signature fails
 
+The key arrangement mirrors a real RSTUF repository: root is held offline,
+and one shared online key signs everything else. Keys carry the readable
+names RSTUF records, so the interface can show names instead of hashes.
+
 Run it with the project's virtualenv active::
 
     python scripts/gen_fixture.py
@@ -40,8 +44,11 @@ from tuf.api.serialization.json import JSONSerializer
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 
-TOP_LEVEL = ["root", "timestamp", "snapshot", "targets"]
+ONLINE_ROLES = ("timestamp", "snapshot", "targets")
 BINS = ["bins-0", "bins-1"]
+
+KEY_NAME = "x-rstuf-key-name"
+ONLINE_KEY_URI = "x-rstuf-online-key-uri"
 
 
 def _expiry(days: int) -> datetime:
@@ -50,28 +57,39 @@ def _expiry(days: int) -> datetime:
     )
 
 
+def _named(signer: CryptoSigner, name: str, online: bool) -> CryptoSigner:
+    """Record RSTUF's readable key name, and mark online keys as such."""
+    fields = signer.public_key.unrecognized_fields
+    fields[KEY_NAME] = name
+    if online:
+        fields[ONLINE_KEY_URI] = f"fn:{signer.public_key.keyid}"
+    return signer
+
+
 def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
     """Write a complete, signed repository into ``out_dir``."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # One signing key per role. Real repositories keep the root key offline.
-    signers = {name: CryptoSigner.generate_ecdsa() for name in TOP_LEVEL}
-    bin_signer = CryptoSigner.generate_ecdsa()
+    # Root is protected by a key kept offline; one online key signs the rest,
+    # including the bins. This is the arrangement RSTUF sets up by default.
+    root_signer = _named(CryptoSigner.generate_ecdsa(), "root_key_1", False)
+    online_signer = _named(CryptoSigner.generate_ecdsa(), "online_key", True)
 
     # --- root: names every role's keys and how many signatures each needs ---
     root = Root(expires=_expiry(365))
-    for name, signer in signers.items():
-        root.add_key(signer.public_key, name)
+    root.add_key(root_signer.public_key, "root")
+    for name in ONLINE_ROLES:
+        root.add_key(online_signer.public_key, name)
     root.roles["root"].threshold = 1
 
     # --- targets: delegates all artifacts to the bins ---
     targets = Targets(expires=_expiry(90))
     targets.delegations = Delegations(
-        keys={bin_signer.public_key.keyid: bin_signer.public_key},
+        keys={online_signer.public_key.keyid: online_signer.public_key},
         roles={
             name: DelegatedRole(
                 name=name,
-                keyids=[bin_signer.public_key.keyid],
+                keyids=[online_signer.public_key.keyid],
                 threshold=1,
                 terminating=False,
                 paths=[f"{name}/*"],
@@ -92,7 +110,7 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
         bins[name] = bin_targets
 
     # --- snapshot: pins the version of every other metadata file ---
-    snapshot = Snapshot(expires=_expiry(7))
+    snapshot = Snapshot(expires=_expiry(5))
     snapshot.meta["targets.json"] = MetaFile(version=1)
     for name in BINS:
         snapshot.meta[f"{name}.json"] = MetaFile(version=1)
@@ -102,12 +120,12 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
     timestamp.snapshot_meta = MetaFile(version=1)
 
     to_write: list[tuple[str, object, CryptoSigner]] = [
-        ("root", root, signers["root"]),
-        ("targets", targets, signers["targets"]),
-        ("snapshot", snapshot, signers["snapshot"]),
-        ("timestamp", timestamp, signers["timestamp"]),
+        ("root", root, root_signer),
+        ("targets", targets, online_signer),
+        ("snapshot", snapshot, online_signer),
+        ("timestamp", timestamp, online_signer),
     ]
-    to_write += [(name, bins[name], bin_signer) for name in BINS]
+    to_write += [(name, bins[name], online_signer) for name in BINS]
 
     for name, payload, signer in to_write:
         metadata = Metadata(payload)
