@@ -289,6 +289,29 @@ OverviewResponse
 The table is the landing view because it is dense and scannable. The tree
 answers "who delegates to whom" at a glance.
 
+### Expiry is more than valid or expired
+
+A role an hour from expiring is not in the same condition as one expiring next
+year, and calling both "valid" hides the difference that matters. Four bands
+are reported instead:
+
+```
+expired        already past its date
+critical       under a day left
+expiring       under a week left
+valid          beyond that
+```
+
+Timestamp is the reason this earns its place. It is renewed roughly daily, so
+it sits in the critical band during normal operation, and a countdown beside
+it turns an abstract date into something a person can act on. One badge in the
+header carries the worst band found anywhere in the repository, so a glance
+answers whether anything needs attention.
+
+A refresh control sits next to it. The cache exists to spare the storage
+server, not to argue with someone who wants to know the state right now, so
+asking explicitly clears it and fetches again.
+
 A deployment normally points at one repository, set by its operator. Where a
 demo deployment wants visitors to explore, the landing page can offer example
 repositories to load, the way public TUF viewers do.
@@ -369,6 +392,7 @@ Each row is a real mechanism, not an intention.
 | how responses are cached | callers see a two-method interface, so a shared store such as Redis can replace the in-process cache without touching them |
 | more than one repository | the metadata layer takes the repository as an argument rather than reading global state, so a second repository is added by configuration |
 | the browser contract | versioned under `/api/v1/`, so a new shape ships beside the old one |
+| who signs a delegated role | read from the parent's own delegation entry, not inherited from a top-level role, so per-role signing keys are reported correctly |
 | authentication and permissions | every request already passes one backend door, so a login and a per-role permission check slot in front of the routes without changing the metadata layer |
 
 One rule inside the code: the tree builder iterates over what it finds and
