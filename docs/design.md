@@ -84,6 +84,12 @@ Trust-on-first-use is not offered. The library removed it, and now requires an
 explicit `bootstrap` argument with no default, so the choice cannot be made by
 accident.
 
+A pinned root does not go stale. The client walks forward from whatever
+version it was handed, fetching `2.root.json`, `3.root.json` and so on, and
+verifies each rotation against the version before it. Root expiry, key
+rotation and rollback are therefore the library's problem, not the
+operator's, and the reason the settings allow a long chain of rotations.
+
 One honest limit on source 2: the root arrives from the RSTUF API, a different
 service from the storage being checked. That is safer than taking the root from
 the storage itself, and weaker than a root an operator hands over.
@@ -358,12 +364,21 @@ Each row is a real mechanism, not an intention.
 | how responses are cached | callers see a two-method interface, so a shared store such as Redis can replace the in-process cache without touching them |
 | more than one repository | the metadata layer takes the repository as an argument rather than reading global state, so a second repository is added by configuration |
 | the browser contract | versioned under `/api/v1/`, so a new shape ships beside the old one |
+| authentication and permissions | every request already passes one backend door, so a login and a per-role permission check slot in front of the routes without changing the metadata layer |
 
 One rule inside the code: the tree builder iterates over what it finds and
 never names a role.
 
 Write operations stay out of scope. When they arrive they attach at the
-backend, which is the single place a browser request already passes through.
+backend, which is the single place a browser request already passes through,
+and they use the RSTUF API, which is already the write side of the split:
+reading goes through the TUF client, changing goes through RSTUF.
+
+This is not hypothetical. PyPI is evaluating RSTUF for its TUF metadata, with
+per-team roles holding their own online keys, and has asked for an interface
+that can later add delegations, rotate keys, and enforce who may touch what.
+A read-only viewer whose backend can grow authentication, permissions, and
+write endpoints is the path to that tool.
 
 ---
 
@@ -411,6 +426,16 @@ templates/
 Settings arrive as environment variables declared in values, the same way
 RSTUF passes its own. Adding the chart to the demo is one dependency entry,
 switched by `enabled`, as every other component there already is.
+
+### Serving the metadata
+
+The client needs a URL, and a storage bucket alone is not one. Something must
+answer HTTP requests for the metadata files, wherever they live. RSTUF
+already provides this in its local deployment, where a small web server
+serves the worker's storage. The chart treats that server as part of the
+deployment: its address is what `RSTUF_METADATA_URL` points at, and the
+configuration must work out of the box whether the files sit in S3, in a
+volume, or behind an existing server, on cloud or on premise.
 
 `/healthz` answers for the orchestrator only. It reports that the process is
 running and says nothing about the repository, whose health appears on screen.
