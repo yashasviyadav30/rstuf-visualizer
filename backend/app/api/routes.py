@@ -22,6 +22,7 @@ from app.models.schemas import (
     ArtifactsResponse,
     OverviewResponse,
     RoleDetailResponse,
+    RootsResponse,
     StatusResponse,
 )
 from app.service import (
@@ -30,6 +31,7 @@ from app.service import (
     VisualizerService,
     get_service,
 )
+from app.tuf.roots import DEFAULT_HISTORY, MAX_HISTORY
 from app.tuf.trust import MetadataUnavailableError
 
 router = APIRouter()
@@ -86,6 +88,30 @@ async def role_detail(
         if detail == role:
             detail = f"No such role: {role}"
         raise HTTPException(status_code=404, detail=detail) from exc
+    except TrustAnchorMissingError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except MetadataUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@v1.get("/roots", response_model=RootsResponse)
+async def roots(
+    limit: int = Query(
+        default=DEFAULT_HISTORY,
+        ge=1,
+        le=MAX_HISTORY,
+        description="How many versions back to walk, newest first",
+    ),
+    service: VisualizerService = Depends(get_service),
+) -> RootsResponse:
+    """Show how root reached its current version.
+
+    Each step is checked against the rule the specification sets for a
+    rotation, so a version that cannot be tied to the one before it is
+    reported as exactly that rather than shown as settled history.
+    """
+    try:
+        return await service.roots(limit=limit)
     except TrustAnchorMissingError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except MetadataUnavailableError as exc:

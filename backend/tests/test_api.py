@@ -68,7 +68,7 @@ class TestOverview:
 
         root = next(r for r in body["roles"] if r["name"] == "root")
         timestamp = next(r for r in body["roles"] if r["name"] == "timestamp")
-        assert root["key_names"] == ["root_key_1"]
+        assert sorted(root["key_names"]) == ["root_key_1", "root_key_2"]
         assert timestamp["key_names"] == ["online_key"]
 
     def test_grades_expiry_rather_than_only_flagging_it(

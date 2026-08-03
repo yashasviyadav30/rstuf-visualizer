@@ -60,6 +60,7 @@
     overview: (refresh) =>
       request(`/overview${refresh ? '?refresh=true' : ''}`),
     role: (name) => request(`/roles/${encodeURIComponent(name)}`),
+    roots: () => request('/roots'),
     artifacts: (search) =>
       request(`/artifacts?search=${encodeURIComponent(search || '')}`),
     status: () => request('/status'),

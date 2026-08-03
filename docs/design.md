@@ -367,6 +367,24 @@ own, and the library's `verify_delegate` applies exactly that check to each
 step of the chain. An unverifiable version is shown as unverifiable, never as
 history.
 
+The walk starts at the root the client already verified and runs backwards,
+which is the only direction that proves anything. Confirming that version
+N−1's keys signed version N shows those keys are the genuine ones, and since
+N−1 carries their signatures too, the whole of N−1 is tied to something
+already trusted. Walking forwards from version 1 would prove nothing, because
+nothing vouches for version 1 but itself.
+
+That walk also looks where a refresh never does. A client moves forward from
+the root it holds, so once it has settled on the newest version it stops
+reading the older ones. An archived root that is corrupted or swapped after
+the fact therefore goes unnoticed by every normal client. Reading the history
+is what finds it.
+
+One detail that would otherwise mislead: a superseded version is not graded
+for expiry. Old roots lapse as a matter of course, and a client checks expiry
+on the final root alone, so painting version 1 red would raise an alarm about
+a file nothing depends on.
+
 ### Drawing a tree that stays readable
 
 The tree is laid out by a hierarchical layout engine rather than by hand, so

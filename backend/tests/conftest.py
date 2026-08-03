@@ -98,12 +98,11 @@ class _ReusableServer(socketserver.TCPServer):
 
 
 @pytest.fixture
-def serve_fixture() -> Iterator[object]:
-    """Serve a generated repository over HTTP and yield its base URL."""
+def serve_directory() -> Iterator[object]:
+    """Serve any directory of metadata over HTTP and yield its base URL."""
     servers: list[socketserver.TCPServer] = []
 
-    def _serve(variant: str) -> str:
-        directory = FIXTURE_ROOT / variant
+    def _serve(directory: str | Path) -> str:
         handler = functools.partial(
             http.server.SimpleHTTPRequestHandler, directory=str(directory)
         )
@@ -117,6 +116,16 @@ def serve_fixture() -> Iterator[object]:
     for server in servers:
         server.shutdown()
         server.server_close()
+
+
+@pytest.fixture
+def serve_fixture(serve_directory) -> object:
+    """Serve one of the generated repositories and yield its base URL."""
+
+    def _serve(variant: str) -> str:
+        return serve_directory(FIXTURE_ROOT / variant)
+
+    return _serve
 
 
 @pytest.fixture

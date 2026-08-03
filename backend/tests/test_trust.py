@@ -67,9 +67,34 @@ class TestLoadRepository:
             bootstrap=bootstrap_root("good"),
         )
 
+        by_name = {role.name: role for role in view.roles}
+        # Root asks for two of its two offline keys; the online roles ask for
+        # one. Reading both proves the threshold comes from root's own entry
+        # for each role rather than from a single repository-wide setting.
+        assert by_name["root"].threshold == 2
+        assert by_name["root"].key_count == 2
+        assert by_name["timestamp"].threshold == 1
+        assert by_name["timestamp"].key_count == 1
+
+    @pytest.mark.asyncio
+    async def test_walks_the_root_chain_from_an_old_anchor(
+        self, tmp_path: Path, serve_fixture, bootstrap_root
+    ) -> None:
+        """A pinned root does not go stale.
+
+        The anchor handed over is version one. The client is expected to
+        follow the rotations published since and settle on the newest, which
+        is what makes pinning a root safe to do once and leave alone.
+        """
+        view = await load_repository(
+            metadata_url=serve_fixture("good"),
+            trust_dir=tmp_path,
+            bootstrap=bootstrap_root("good"),
+        )
+
         root = next(role for role in view.roles if role.name == "root")
-        assert root.threshold == 1
-        assert root.key_count == 1
+        assert root.version == 3
+        assert view.is_trustworthy
 
     @pytest.mark.asyncio
     async def test_discovers_delegations_without_naming_them(

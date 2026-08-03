@@ -20,14 +20,21 @@ from app.models.schemas import (
     ArtifactSummary,
     DelegatedSummary,
     ExpiryBand,
+    KeyChangeAction,
     KeySummary,
     OverviewResponse,
     RepositoryState,
     RoleDetailResponse,
     RoleStatus,
     RoleSummary,
+    RootKeyChange,
+    RootRoleChange,
+    RootsResponse,
+    RootVersionSummary,
+    SignatureCheckSummary,
     TreeEdge,
 )
+from app.tuf.roots import RootHistory, RootRevision, SignatureCheck
 from app.tuf.trust import DelegatedView, RepositoryView
 
 RSTUF_KEY_NAME = "x-rstuf-key-name"
@@ -251,6 +258,161 @@ def build_role_detail(
         ],
         delegates_to=role.delegates_to,
         artifacts=artifacts,
+    )
+
+
+def _key_name(key: object, keyid: str) -> str:
+    """Name a key the way RSTUF records it, or fall back to its identifier."""
+    extra = getattr(key, "unrecognized_fields", None) or {}
+    return extra.get(RSTUF_KEY_NAME) or keyid[:8]
+
+
+def _key_changes(older: object, newer: object) -> list[RootKeyChange]:
+    """List the keys one version of root added, and the ones it withdrew."""
+    before = getattr(older, "keys", {}) or {}
+    after = getattr(newer, "keys", {}) or {}
+
+    changes: list[RootKeyChange] = []
+    for keyid in sorted(set(after) - set(before)):
+        changes.append(
+            RootKeyChange(
+                keyid=keyid,
+                keyid_short=keyid[:8],
+                name=_key_name(after[keyid], keyid),
+                action=KeyChangeAction.ADDED,
+            )
+        )
+    for keyid in sorted(set(before) - set(after)):
+        changes.append(
+            RootKeyChange(
+                keyid=keyid,
+                keyid_short=keyid[:8],
+                name=_key_name(before[keyid], keyid),
+                action=KeyChangeAction.REMOVED,
+            )
+        )
+    return changes
+
+
+def _role_changes(older: object, newer: object) -> list[RootRoleChange]:
+    """Report where a rotation moved a threshold or changed who may sign.
+
+    Roles that came through a rotation untouched are left out. A page listing
+    four unchanged roles beside the one that moved buries the finding.
+    """
+    before = getattr(older, "roles", {}) or {}
+    after = getattr(newer, "roles", {}) or {}
+    names = {
+        **(getattr(older, "keys", {}) or {}),
+        **(getattr(newer, "keys", {}) or {}),
+    }
+
+    changes: list[RootRoleChange] = []
+    for role in sorted(set(before) | set(after)):
+        was, now_role = before.get(role), after.get(role)
+        was_ids = set(was.keyids) if was else set()
+        now_ids = set(now_role.keyids) if now_role else set()
+        threshold_before = was.threshold if was else None
+        threshold_after = now_role.threshold if now_role else None
+
+        added = sorted(now_ids - was_ids)
+        removed = sorted(was_ids - now_ids)
+        if not added and not removed and threshold_before == threshold_after:
+            continue
+
+        changes.append(
+            RootRoleChange(
+                role=role,
+                threshold_before=threshold_before,
+                threshold_after=threshold_after,
+                signers_added=[
+                    _key_name(names.get(keyid), keyid) for keyid in added
+                ],
+                signers_removed=[
+                    _key_name(names.get(keyid), keyid) for keyid in removed
+                ],
+            )
+        )
+    return changes
+
+
+def _check_summary(check: SignatureCheck | None) -> SignatureCheckSummary:
+    if check is None:  # pragma: no cover - the walk always sets this one
+        return SignatureCheckSummary(verified=False, present=0, threshold=0)
+    return SignatureCheckSummary(
+        verified=check.verified,
+        present=check.present,
+        threshold=check.threshold,
+    )
+
+
+def _root_version(
+    revision: RootRevision,
+    previous: RootRevision | None,
+    current: int,
+    now: datetime,
+) -> RootVersionSummary:
+    """Describe one version of root, and what the rotation into it did."""
+    superseded = revision.version != current
+    if superseded:
+        # A client checks expiry on the final root only, so reporting a band
+        # here would raise an alarm about a file nothing depends on.
+        band, phrase = None, f"superseded by version {current}"
+    else:
+        band, phrase = expiry_band(revision.expires, now)
+
+    keys_changed: list[RootKeyChange] = []
+    roles_changed: list[RootRoleChange] = []
+    if previous is not None:
+        keys_changed = _key_changes(
+            previous.document.signed, revision.document.signed
+        )
+        roles_changed = _role_changes(
+            previous.document.signed, revision.document.signed
+        )
+
+    return RootVersionSummary(
+        version=revision.version,
+        expires=revision.expires.isoformat(),
+        expires_in=phrase,
+        band=band,
+        superseded=superseded,
+        verified=revision.verified,
+        by_own_keys=_check_summary(revision.by_own_keys),
+        by_previous_keys=(
+            _check_summary(revision.by_previous_keys)
+            if revision.by_previous_keys is not None
+            else None
+        ),
+        note=revision.note,
+        key_count=len(getattr(revision.document.signed, "keys", {}) or {}),
+        keys_changed=keys_changed,
+        roles_changed=roles_changed,
+    )
+
+
+def build_root_history(
+    history: RootHistory, now: datetime | None = None
+) -> RootsResponse:
+    """Assemble root's history, newest version first."""
+    now = now or datetime.now(timezone.utc)
+    revisions = history.revisions
+
+    versions = [
+        _root_version(
+            revision,
+            revisions[index + 1] if index + 1 < len(revisions) else None,
+            history.current,
+            now,
+        )
+        for index, revision in enumerate(revisions)
+    ]
+
+    return RootsResponse(
+        current=history.current,
+        earliest=history.earliest,
+        versions=versions,
+        message=history.message,
     )
 
 

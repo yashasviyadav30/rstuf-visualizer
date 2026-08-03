@@ -14,6 +14,11 @@ The key arrangement mirrors a real RSTUF repository: root is held offline,
 and one shared online key signs everything else. Keys carry the readable
 names RSTUF records, so the interface can show names instead of hashes.
 
+Root is published in three versions rather than one. A client is handed the
+first and walks forward to the third, so every refresh exercises the rotation
+rule, and the history view has real changes to compare instead of a single
+version with nothing before it.
+
 Run it with the project's virtualenv active::
 
     python scripts/gen_fixture.py
@@ -66,21 +71,54 @@ def _named(signer: CryptoSigner, name: str, online: bool) -> CryptoSigner:
     return signer
 
 
+def _root_version(
+    version: int,
+    root_signers: list[CryptoSigner],
+    online_signer: CryptoSigner,
+    root_threshold: int,
+) -> Root:
+    """Build one version of root from the keys it is meant to declare.
+
+    Each version is written out in full rather than edited from the one
+    before, so the difference between two versions is visible in this file
+    and not buried in a sequence of mutations.
+    """
+    root = Root(version=version, expires=_expiry(365))
+    for signer in root_signers:
+        root.add_key(signer.public_key, "root")
+    for name in ONLINE_ROLES:
+        root.add_key(online_signer.public_key, name)
+    root.roles["root"].threshold = root_threshold
+    return root
+
+
 def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
     """Write a complete, signed repository into ``out_dir``."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Root is protected by a key kept offline; one online key signs the rest,
+    # Root is protected by keys kept offline; one online key signs the rest,
     # including the bins. This is the arrangement RSTUF sets up by default.
     root_signer = _named(CryptoSigner.generate_ecdsa(), "root_key_1", False)
+    second_root = _named(CryptoSigner.generate_ecdsa(), "root_key_2", False)
+    retired_online = _named(
+        CryptoSigner.generate_ecdsa(), "online_key_retired", True
+    )
     online_signer = _named(CryptoSigner.generate_ecdsa(), "online_key", True)
 
-    # --- root: names every role's keys and how many signatures each needs ---
-    root = Root(expires=_expiry(365))
-    root.add_key(root_signer.public_key, "root")
-    for name in ONLINE_ROLES:
-        root.add_key(online_signer.public_key, name)
-    root.roles["root"].threshold = 1
+    # --- root: three versions, so the chain has rotations to check ---
+    #
+    #   v1  one offline key, threshold 1
+    #   v2  a second offline key joins, threshold rises to 2
+    #   v3  the online key is replaced
+    #
+    # A version is signed by the keys the version before it required and by
+    # its own, which is the rule the specification sets for a rotation.
+    offline = [root_signer, second_root]
+    root_history: list[tuple[Root, list[CryptoSigner]]] = [
+        (_root_version(1, [root_signer], retired_online, 1), [root_signer]),
+        (_root_version(2, offline, retired_online, 2), offline),
+        (_root_version(3, offline, online_signer, 2), offline),
+    ]
 
     # --- targets: delegates all artifacts to the bins ---
     targets = Targets(expires=_expiry(90))
@@ -119,8 +157,17 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
     timestamp = Timestamp(expires=_expiry(timestamp_expiry_days))
     timestamp.snapshot_meta = MetaFile(version=1)
 
+    # Root files always carry their version in the name, whatever the
+    # consistent-snapshot setting says, because a client walks them.
+    for payload, signers in root_history:
+        metadata = Metadata(payload)
+        for signer in signers:
+            metadata.sign(signer, append=True)
+        metadata.to_file(
+            str(out_dir / f"{payload.version}.root.json"), JSONSerializer()
+        )
+
     to_write: list[tuple[str, object, CryptoSigner]] = [
-        ("root", root, root_signer),
         ("targets", targets, online_signer),
         ("snapshot", snapshot, online_signer),
         ("timestamp", timestamp, online_signer),
@@ -136,7 +183,8 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
         )
         metadata.to_file(str(out_dir / filename), JSONSerializer())
 
-    # A client bootstraps from this copy, so keep an unprefixed one too.
+    # A client bootstraps from the version it is handed and walks forward, so
+    # giving it the first one exercises both rotations on every refresh.
     shutil.copy(out_dir / "1.root.json", out_dir / "root.json")
 
 

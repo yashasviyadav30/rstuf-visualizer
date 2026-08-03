@@ -33,6 +33,7 @@
 <nav class="tabs">
   <div class="container tabs__inner">
     <button class="tab is-active" data-tab="roles" type="button">Roles</button>
+    <button class="tab" data-tab="roots" type="button">Root history</button>
     <button class="tab" data-tab="artifacts" type="button">Artifacts</button>
     <button class="tab" data-tab="status" type="button">Status</button>
   </div>
@@ -73,6 +74,17 @@
       </aside>
 
     </div>
+  </section>
+
+  <!-- ROOT HISTORY -->
+  <section class="panel" id="tab-roots">
+    <h2 class="section-title">How root reached its current version</h2>
+    <div id="roots-body"><p class="muted">Open this tab to read the
+    history.</p></div>
+    <p class="note">Each version must be signed by the keys of the version
+    before it and by its own. A step that fails that rule is marked, not
+    hidden, and an ordinary refresh would never look: a client walks forward
+    from the root it already holds and does not read older ones again.</p>
   </section>
 
   <!-- ARTIFACTS -->

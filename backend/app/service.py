@@ -25,10 +25,12 @@ from app.models.schemas import (
     OverviewResponse,
     RepositoryState,
     RoleDetailResponse,
+    RootsResponse,
     StatusResponse,
 )
 from app.rstuf.client import RstufClient
 from app.tuf import read
+from app.tuf.roots import DEFAULT_HISTORY, RootHistory, load_root_history
 from app.tuf.trust import (
     MetadataUnavailableError,
     RepositoryView,
@@ -177,6 +179,31 @@ class VisualizerService:
             self._settings.request_timeout_seconds,
         )
         return read.build_delegated_detail(view, loaded)
+
+    async def roots(self, limit: int = DEFAULT_HISTORY) -> RootsResponse:
+        """Report root's history, and whether each rotation in it holds up.
+
+        The walk starts from the root the client verified, so the history is
+        keyed by that version: publishing a new root retires the cached answer
+        rather than leaving a stale chain on the page.
+        """
+        view = await self.view()
+        trusted = view.documents.get("root")
+        if trusted is None:
+            raise MetadataUnavailableError("root metadata is not available")
+
+        async def build() -> RootHistory:
+            return await load_root_history(
+                self._settings.metadata_url,
+                trusted,
+                limit,
+                self._settings.request_timeout_seconds,
+            )
+
+        history = await self._cache.get_or_build(
+            f"roots:{trusted.signed.version}:{limit}", build
+        )
+        return read.build_root_history(history)
 
     async def artifacts(
         self, search: str = "", page: int = 1, page_size: int = 50

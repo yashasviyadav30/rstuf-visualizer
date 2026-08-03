@@ -29,8 +29,9 @@ class Settings(BaseSettings):
     trusted_root: str | None = None
     """Base64 trust anchor, following the RSTUF client convention.
 
-    Left unset, the client falls back to its cached root, which is not
-    recommended outside local development.
+    Holds either the root metadata itself or a URL pointing at it. Left unset,
+    the anchor is taken from the RSTUF API, and with neither available the
+    service reports that it cannot verify anything rather than guessing.
     """
 
     api_url: str | None = None
