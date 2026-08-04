@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from app import service as service_module
 from tests.conftest import requires_fixtures, requires_symlinks
 
 
@@ -184,6 +185,33 @@ class TestArtifacts:
         )
 
         assert response.status_code == 422
+
+    def test_reads_each_delegated_role_once_however_many_pages(
+        self, visualizer, monkeypatch
+    ) -> None:
+        """Every artifact lives in a delegated role, so listing them means
+        fetching each one. A repository can hold two hundred and fifty-six,
+        and turning a page must not ask the storage server for all of them
+        again.
+        """
+        fetched: list[str] = []
+        original = service_module.load_delegated_role
+
+        async def counted(metadata_url, view, name, timeout=10.0):
+            fetched.append(name)
+            return await original(metadata_url, view, name, timeout)
+
+        monkeypatch.setattr(service_module, "load_delegated_role", counted)
+
+        client = visualizer("good")
+        client.get("/api/v1/artifacts", params={"page": 1})
+        after_first = list(fetched)
+
+        client.get("/api/v1/artifacts", params={"page": 2})
+        client.get("/api/v1/artifacts", params={"search": "urllib3"})
+
+        assert sorted(after_first) == ["bins-0", "bins-1"]
+        assert fetched == after_first
 
 
 @requires_fixtures

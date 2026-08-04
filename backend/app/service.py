@@ -11,6 +11,7 @@ live in one place.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import tempfile
 from functools import lru_cache
@@ -44,6 +45,11 @@ from app.tuf.trust import (
 logger = logging.getLogger(__name__)
 
 OVERVIEW_KEY = "overview"
+
+# How many delegated roles to fetch at once when gathering artifacts. Enough
+# to hide the round trips, few enough that a repository with two hundred and
+# fifty-six bins does not arrive at the storage server all at the same moment.
+DELEGATED_FETCH_LIMIT = 8
 
 _NOT_READY_MESSAGES = {
     RepositoryState.NOT_INITIALISED: (
@@ -237,16 +243,18 @@ class VisualizerService:
         )
         return read.build_root_history(history)
 
-    async def artifacts(
-        self, search: str = "", page: int = 1, page_size: int = 50
-    ) -> ArtifactsResponse:
-        """List artifacts, gathering them from the roles that declare them.
+    async def _gather_artifacts(
+        self, view: RepositoryView
+    ) -> list[ArtifactSummary]:
+        """Read every artifact the repository vouches for, once.
 
         Delegated roles are fetched here because listing artifacts is exactly
         the request that needs their contents. Opening the page is the
         consent; loading them at startup would not be.
+
+        A bin that cannot be fetched is left out and logged. One unreachable
+        bin should cost its own artifacts, not the whole listing.
         """
-        view = await self.view()
         collected: list[ArtifactSummary] = []
 
         for role in view.roles:
@@ -265,18 +273,24 @@ class VisualizerService:
                     )
                 )
 
-        for name in sorted(view.delegated):
-            try:
-                loaded = await load_delegated_role(
-                    self._settings.metadata_url,
-                    view,
-                    name,
-                    self._settings.request_timeout_seconds,
-                )
-            except MetadataUnavailableError as exc:
-                logger.info(
-                    "Skipping %s while listing artifacts: %s", name, exc
-                )
+        limiter = asyncio.Semaphore(DELEGATED_FETCH_LIMIT)
+
+        async def fetch(name: str) -> tuple[str, DelegatedView | None]:
+            async with limiter:
+                try:
+                    return name, await self._delegated(view, name)
+                except MetadataUnavailableError as exc:
+                    logger.info(
+                        "Skipping %s while listing artifacts: %s", name, exc
+                    )
+                    return name, None
+
+        results = await asyncio.gather(
+            *(fetch(name) for name in sorted(view.delegated))
+        )
+
+        for name, loaded in results:
+            if loaded is None:
                 continue
             for path, length, hashes in loaded.artifacts:
                 collected.append(
@@ -285,11 +299,32 @@ class VisualizerService:
                     )
                 )
 
+        collected.sort(key=lambda item: item.path)
+        return collected
+
+    async def artifacts(
+        self, search: str = "", page: int = 1, page_size: int = 50
+    ) -> ArtifactsResponse:
+        """Return one page of the repository's artifacts.
+
+        The gathered list is kept against the version of snapshot it was read
+        from, because snapshot pins every delegated role. Turning a page or
+        typing in the search box therefore reads what is already in hand,
+        instead of asking the storage server for every bin again.
+        """
+        view = await self.view()
+        snapshot = view.documents.get("snapshot")
+        version = getattr(snapshot.signed, "version", 0) if snapshot else 0
+
+        collected = await self._cache.get_or_build(
+            f"artifacts:{version}", lambda: self._gather_artifacts(view)
+        )
+
         if search:
             needle = search.lower()
+            # A new list, so the cached one is never narrowed in place.
             collected = [a for a in collected if needle in a.path.lower()]
 
-        collected.sort(key=lambda item: item.path)
         start = max(0, (page - 1) * page_size)
         end = start + page_size
         return ArtifactsResponse(
