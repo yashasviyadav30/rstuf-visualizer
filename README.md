@@ -8,7 +8,9 @@ The service fetches the repository's signed metadata, verifies it with
 repository can be read at a glance: which roles are valid, what has expired,
 and what is still waiting for signatures.
 
-Built during the LFX Mentorship with RSTUF. Work in progress.
+Read-only by design: it verifies and displays a repository, and changes
+nothing in it. Altering a repository is the RSTUF API's job, reached with the
+operator's own credentials.
 
 ## Requirements
 

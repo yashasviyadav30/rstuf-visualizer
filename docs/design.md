@@ -442,11 +442,12 @@ backend, which is the single place a browser request already passes through,
 and they use the RSTUF API, which is already the write side of the split:
 reading goes through the TUF client, changing goes through RSTUF.
 
-This is not hypothetical. PyPI is evaluating RSTUF for its TUF metadata, with
-per-team roles holding their own online keys, and has asked for an interface
-that can later add delegations, rotate keys, and enforce who may touch what.
-A read-only viewer whose backend can grow authentication, permissions, and
-write endpoints is the path to that tool.
+That shape matters for the repositories RSTUF is built for. A package index
+of any size ends up with separate teams owning separate paths, each holding
+its own online key, and the operations that follow are adding a delegation,
+rotating a key, and deciding who may do either. A read-only viewer whose
+backend can grow authentication, permissions and write endpoints reaches
+those; one built as a browser-side reader does not.
 
 ---
 
