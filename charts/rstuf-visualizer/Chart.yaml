@@ -1,6 +1,8 @@
 apiVersion: v2
 name: rstuf-visualizer
 description: A RSTUF Metadata Visualizer Helm chart for Kubernetes
+maintainers:
+  - name: yashasviyadav30
 
 # A chart can be either an 'application' or a 'library' chart.
 #
