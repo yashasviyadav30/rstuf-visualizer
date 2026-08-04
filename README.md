@@ -19,17 +19,27 @@ operator's own credentials.
 
 ## Running it
 
+A TUF client reads a repository over HTTP, so something has to publish the
+metadata before there is anything to look at. `run_local.sh` stands up both
+halves: a web server in front of a generated repository, and the visualizer
+pointed at its URL.
+
 ```bash
 cd backend
 pipenv install --dev
-pipenv shell
-
-export RSTUF_METADATA_URL=http://localhost:8080
-uvicorn app.main:app --reload
+pipenv run ./scripts/run_local.sh          # or: make run-local
 ```
 
 The interface and the API are both served on <http://localhost:8000>, with
-interactive documentation at `/docs`.
+interactive documentation at `/docs`. Pass `expired` or `tampered` to run
+against a repository in trouble.
+
+To run the service on its own, against a repository published elsewhere:
+
+```bash
+export RSTUF_METADATA_URL=https://example.org/metadata/
+uvicorn app.main:app --reload
+```
 
 ## Endpoints
 

@@ -1,5 +1,5 @@
-.PHONY: all tests clean purge run-dev stop build-dev reformat precommit \
-	coverage fixtures chart-lint help
+.PHONY: all tests clean purge run-dev run-local stop build-dev reformat \
+	precommit coverage fixtures chart-lint help
 
 all: help
 
@@ -20,6 +20,9 @@ coverage:  ## Run tests with coverage
 
 fixtures:  ## Generate local TUF repositories for development
 	python scripts/gen_fixture.py
+
+run-local:  ## Serve a generated repository and read it, without Docker
+	./scripts/run_local.sh
 
 # The image carries the interface as well as the backend, so it is built from
 # the repository root rather than from here.
