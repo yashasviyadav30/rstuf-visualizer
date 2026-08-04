@@ -1,0 +1,50 @@
+# A web server publishing a TUF repository, for the chart's own test only.
+#
+# It stands in for whatever publishes a real deployment's metadata: RSTUF
+# writes to storage, and storage is not an address a TUF client can read. The
+# files come from a ConfigMap the workflow builds out of the generated test
+# repository, so nothing signed is committed.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rstuf-metadata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rstuf-metadata
+  template:
+    metadata:
+      labels:
+        app: rstuf-metadata
+    spec:
+      containers:
+        - name: web
+          image: python:3.13-slim
+          command:
+            - python
+            - -m
+            - http.server
+            - -d
+            - /srv/metadata
+            - "8080"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: fixtures
+              mountPath: /srv/metadata
+      volumes:
+        - name: fixtures
+          configMap:
+            name: tuf-fixtures
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rstuf-metadata
+spec:
+  selector:
+    app: rstuf-metadata
+  ports:
+    - port: 80
+      targetPort: 8080

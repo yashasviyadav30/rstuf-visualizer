@@ -1,0 +1,71 @@
+# rstuf-visualizer
+
+A read-only web view of a TUF repository managed by
+[RSTUF](https://repository-service-tuf.readthedocs.io/).
+
+The service fetches the repository's signed metadata, verifies it with
+`python-tuf`, and shows the trust state: which roles are valid, what has
+expired, who signs what, and how root reached its current version. It writes
+nothing back. Changing a repository is the RSTUF API's job, reached with the
+operator's own credentials.
+
+## Installing
+
+```bash
+helm install visualizer charts/rstuf-visualizer \
+  --set metadataUrl=http://rstuf-metadata/ \
+  --set-file trustedRoot.value=root.json.b64
+```
+
+## What it needs
+
+**An address serving the metadata.** `metadataUrl` is required and has no
+default. RSTUF writes metadata to storage, and object storage is not an
+address a TUF client can read, so a web server has to stand in front of it.
+RSTUF's docker-compose deployment already publishes its storage this way; the
+`rstuf-demo` chart writes to a LocalStack bucket with no public-read policy,
+so that deployment has nothing to point at yet.
+
+**A trust anchor, ideally.** Every other file is checked against one root.
+Supply the root you already trust through `trustedRoot`. Left unset, the
+anchor is taken from the RSTUF API instead, which is weaker: it then arrives
+from the same deployment being checked. With neither, the service reports
+that it cannot verify anything rather than showing metadata it has not
+checked.
+
+## Values
+
+| Key | Default | Purpose |
+|---|---|---|
+| `metadataUrl` | *(required)* | base URL serving the signed metadata |
+| `apiUrl` | `http://rstuf-api` | RSTUF API; empty hides the status panel |
+| `trustedRoot.value` | `""` | base64 root metadata, or a base64 URL pointing at it |
+| `trustedRoot.existingSecret` | `""` | use a Secret you manage instead |
+| `trustedRoot.key` | `trusted-root` | key within that Secret |
+| `cacheTtlSeconds` | `30` | how long a verified view stays reusable |
+| `requestTimeoutSeconds` | `10` | ceiling on any single upstream request |
+| `ui.enabled` | `true` | serve the browser interface as well as the API |
+| `image.repository` | `ghcr.io/repository-service-tuf/rstuf-visualizer` | |
+| `image.tag` | chart `appVersion` | |
+| `service.type` | `ClusterIP` | |
+| `service.port` | `80` | |
+| `containerPort` | `8000` | the process runs unprivileged, so it cannot bind a low port |
+| `ingress.enabled` | `false` | |
+| `autoscaling.enabled` | `false` | |
+| `trustDir.sizeLimit` | `64Mi` | space for the metadata the client has verified |
+
+`values.yaml` carries the rest, with the same names and shapes as the other
+RSTUF charts.
+
+## How it is run
+
+The pod needs no write access to its own files and is given none: the root
+filesystem is read-only, privilege escalation is off, every capability is
+dropped, and it runs as an unprivileged user with no Kubernetes credentials
+mounted. The one directory it writes is an `emptyDir` holding the metadata
+the TUF client has verified. Losing that costs one verification pass, so
+nothing is persisted.
+
+Both probes ask `/healthz`, which reports only that the process is running.
+A repository in trouble is what this service exists to show, so it must never
+be what takes the pod down.

@@ -123,6 +123,19 @@ cd backend
 pytest
 ```
 
+## Continuous integration
+
+Three workflows, each running what a developer runs by hand:
+
+| Workflow | Does |
+|---|---|
+| `tests.yml` | installs from `Pipfile.lock`, runs flake8, black, isort, bandit, then pytest |
+| `chart.yml` | lints the chart, builds the image, installs both into a kind cluster and checks the repository verifies |
+| `image.yml` | builds the image, runs it against a generated repository, publishes to ghcr.io on a `v*` tag |
+
+`pipenv install --deploy` is used throughout, so a dependency added without
+relocking fails the build rather than quietly resolving to something else.
+
 ## Layout
 
 ```

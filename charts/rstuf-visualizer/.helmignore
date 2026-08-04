@@ -21,3 +21,5 @@
 .idea/
 *.tmproj
 .vscode/
+# Values and manifests used to test the chart, not to install it
+ci/
