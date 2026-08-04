@@ -69,7 +69,6 @@ class RepositoryStatus:
     state: RepositoryState = RepositoryState.NOT_INITIALISED
     bootstrap: str | None = None
     awaiting_signatures: list[str] = field(default_factory=list)
-    settings: dict[str, Any] = field(default_factory=dict)
     message: str | None = None
 
 
@@ -170,6 +169,5 @@ class RstufClient:
             state=state,
             bootstrap=bootstrap,
             awaiting_signatures=pending,
-            settings=await self.settings(),
             message=payload.get("message"),
         )
