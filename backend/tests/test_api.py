@@ -6,9 +6,20 @@
 
 from __future__ import annotations
 
+import base64
+
+from fastapi.testclient import TestClient
+
 from app import service as service_module
+from app.config import Settings
+from app.main import app
+from app.service import VisualizerService, get_service
 from app.tuf.trust import MetadataUnavailableError
-from tests.conftest import requires_fixtures, requires_symlinks
+from tests.conftest import (
+    FIXTURE_ROOT,
+    requires_fixtures,
+    requires_symlinks,
+)
 
 
 @requires_fixtures
@@ -248,3 +259,41 @@ class TestStatus:
 
         assert response.status_code == 200
         assert response.json()["available"] is False
+
+
+@requires_fixtures
+@requires_symlinks
+class TestApiUnreachable:
+    """The RSTUF API is advisory; the signed metadata is the evidence."""
+
+    def test_still_shows_the_repository_when_the_api_is_down(
+        self, tmp_path, serve_fixture
+    ) -> None:
+        """An API that cannot be reached says nothing about whether the
+        repository exists. Reading its silence as "not set up" would hide a
+        repository that is right there and checkable.
+        """
+        anchor = (FIXTURE_ROOT / "good" / "root.json").read_bytes()
+        settings = Settings(
+            metadata_url=serve_fixture("good"),
+            trusted_root=base64.b64encode(anchor).decode(),
+            # Nothing listens here.
+            api_url="http://127.0.0.1:9",
+        )
+        service = VisualizerService(settings)
+        service._trust_dir = tmp_path / "trust"
+        app.dependency_overrides[get_service] = lambda: service
+
+        try:
+            client = TestClient(app)
+            overview = client.get("/api/v1/overview").json()
+            status = client.get("/api/v1/status").json()
+        finally:
+            app.dependency_overrides.clear()
+
+        assert overview["state"] == "ready"
+        assert overview["status"] == "valid"
+        assert len(overview["roles"]) == 4
+
+        # The panel that does depend on the API says so, and only that panel.
+        assert status["available"] is False

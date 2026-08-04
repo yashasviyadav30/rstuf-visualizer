@@ -91,8 +91,11 @@ class RstufClient:
             logger.info("RSTUF API did not answer %s: %s", url, exc)
             return None
 
-    async def bootstrap_state(self) -> tuple[bool, str | None]:
+    async def bootstrap_state(self) -> tuple[bool, str | None] | None:
         """Report whether the repository has been bootstrapped, and how far.
+
+        ``None`` means the API did not answer, which is a different thing
+        from an answer of "not bootstrapped" and must not be read as one.
 
         The state is a separate field from the flag: a repository part way
         through a ceremony reports ``bootstrap`` false while still having a
@@ -100,7 +103,7 @@ class RstufClient:
         """
         payload = await self._get("/api/v1/bootstrap/")
         if payload is None:
-            return False, None
+            return None
         data = payload.get("data") or {}
         return bool(data.get("bootstrap")), data.get("state")
 

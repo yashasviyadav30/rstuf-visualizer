@@ -128,7 +128,18 @@ class VisualizerService:
         if self._rstuf is None:
             return RepositoryState.READY
 
-        bootstrapped, state = await self._rstuf.bootstrap_state()
+        reported = await self._rstuf.bootstrap_state()
+        if reported is None:
+            # The API is advisory; the signed metadata is the evidence. An
+            # API that cannot be reached says nothing about whether the
+            # repository exists, so reading its silence as "not set up"
+            # would hide a repository that is right there and checkable.
+            logger.info(
+                "The RSTUF API did not answer; reading the metadata anyway"
+            )
+            return RepositoryState.READY
+
+        bootstrapped, state = reported
         if state == "pre":
             return RepositoryState.INITIALISING
         if state == "signing":

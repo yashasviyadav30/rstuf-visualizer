@@ -67,11 +67,14 @@ jobs:
           kubectl apply -f charts/rstuf-visualizer/ci/metadata-server.yaml
           kubectl rollout status deployment/rstuf-metadata --timeout=180s
 
+      # apiUrl is emptied because no RSTUF API runs in this cluster. The
+      # chart's default points at one, and status is read from it.
       - name: Install the chart
         run: |
           base64 -w0 backend/fixtures/good/root.json | tr -d '\n' > /tmp/root.b64
           helm install visualizer charts/rstuf-visualizer \
             --set metadataUrl=http://rstuf-metadata/ \
+            --set apiUrl= \
             --set image.repository=rstuf-visualizer \
             --set image.tag=ci \
             --set image.pullPolicy=Never \
@@ -81,11 +84,21 @@ jobs:
       - name: Check it verified the repository it was pointed at
         run: |
           kubectl port-forward svc/visualizer-rstuf-visualizer 8000:80 &
-          sleep 5
-          curl -sf http://127.0.0.1:8000/api/v1/overview | tee /dev/stderr \
-            | grep -q '"status":"valid"'
-          curl -sf http://127.0.0.1:8000/api/v1/roots | tee /dev/stderr \
-            | grep -q '"current":3'
+          for _ in $(seq 30); do
+            curl -sf http://127.0.0.1:8000/healthz > /dev/null && break
+            sleep 1
+          done
+
+          # Captured and printed rather than piped, so a failure shows what
+          # the service actually said instead of only that a grep found
+          # nothing.
+          overview=$(curl -sf http://127.0.0.1:8000/api/v1/overview)
+          roots=$(curl -sf http://127.0.0.1:8000/api/v1/roots)
+          echo "overview: $overview"
+          echo "roots: $roots"
+
+          echo "$overview" | grep -q '"status":"valid"'
+          echo "$roots" | grep -q '"current":3'
 
       - name: Run the chart's own test
         run: helm test visualizer --timeout 2m
