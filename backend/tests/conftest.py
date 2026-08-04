@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import base64
 import functools
 import http.server
 import importlib.util
@@ -19,6 +20,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+
+from app.config import Settings
+from app.main import app
+from app.service import VisualizerService, get_service
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_ROOT = BACKEND_ROOT / "fixtures"
@@ -136,3 +142,28 @@ def bootstrap_root() -> object:
         return (FIXTURE_ROOT / variant / "root.json").read_bytes()
 
     return _read
+
+
+@pytest.fixture
+def visualizer(tmp_path: Path, serve_fixture) -> Iterator[object]:
+    """Return an HTTP client wired to one of the generated repositories.
+
+    Each test gets its own trust directory, so one test's verified files
+    cannot decide another test's result.
+    """
+
+    def _client(variant: str) -> TestClient:
+        anchor = (FIXTURE_ROOT / variant / "root.json").read_bytes()
+        settings = Settings(
+            metadata_url=serve_fixture(variant),
+            trusted_root=base64.b64encode(anchor).decode(),
+            api_url=None,
+        )
+        service = VisualizerService(settings)
+        service._trust_dir = tmp_path / variant
+        app.dependency_overrides[get_service] = lambda: service
+        return TestClient(app)
+
+    yield _client
+
+    app.dependency_overrides.clear()

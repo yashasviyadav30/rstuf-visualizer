@@ -6,38 +6,7 @@
 
 from __future__ import annotations
 
-import base64
-from collections.abc import Iterator
-from pathlib import Path
-
-import pytest
-from fastapi.testclient import TestClient
-
-from app.config import Settings
-from app.main import app
-from app.service import VisualizerService, get_service
-from tests.conftest import FIXTURE_ROOT, requires_fixtures, requires_symlinks
-
-
-@pytest.fixture
-def visualizer(tmp_path: Path, serve_fixture) -> Iterator[object]:
-    """Return a client wired to one of the generated repositories."""
-
-    def _client(variant: str) -> TestClient:
-        anchor = (FIXTURE_ROOT / variant / "root.json").read_bytes()
-        settings = Settings(
-            metadata_url=serve_fixture(variant),
-            trusted_root=base64.b64encode(anchor).decode(),
-            api_url=None,
-        )
-        service = VisualizerService(settings)
-        service._trust_dir = tmp_path / variant
-        app.dependency_overrides[get_service] = lambda: service
-        return TestClient(app)
-
-    yield _client
-
-    app.dependency_overrides.clear()
+from tests.conftest import requires_fixtures, requires_symlinks
 
 
 @requires_fixtures
