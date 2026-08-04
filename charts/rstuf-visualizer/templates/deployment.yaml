@@ -76,11 +76,6 @@ spec:
               value: {{ .Values.cacheTtlSeconds | quote }}
             - name: RSTUF_REQUEST_TIMEOUT_SECONDS
               value: {{ .Values.requestTimeoutSeconds | quote }}
-            {{- if not .Values.ui.enabled }}
-            # Set but empty means serve nothing, leaving the API on its own.
-            - name: RSTUF_FRONTEND_DIR
-              value: ""
-            {{- end }}
       volumes:
         - name: trust-dir
           emptyDir:

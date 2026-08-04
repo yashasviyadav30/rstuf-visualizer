@@ -44,7 +44,6 @@ checked.
 | `trustedRoot.key` | `trusted-root` | key within that Secret |
 | `cacheTtlSeconds` | `30` | how long a verified view stays reusable |
 | `requestTimeoutSeconds` | `10` | ceiling on any single upstream request |
-| `ui.enabled` | `true` | serve the browser interface as well as the API |
 | `image.repository` | `ghcr.io/repository-service-tuf/rstuf-visualizer` | |
 | `image.tag` | chart `appVersion` | |
 | `service.type` | `ClusterIP` | |

@@ -49,11 +49,6 @@ cacheTtlSeconds: 30
 # Ceiling on any single request this service makes upstream.
 requestTimeoutSeconds: 10
 
-ui:
-  # Serve the browser interface. Off leaves the JSON API alone, for a
-  # deployment putting its own front end in front of it.
-  enabled: true
-
 # --- kubernetes -------------------------------------------------------------
 
 serviceAccount:

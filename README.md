@@ -65,7 +65,6 @@ it.
 | `RSTUF_API_URL` | no | RSTUF API base URL; unset hides the status panel |
 | `RSTUF_CACHE_TTL_SECONDS` | no | response reuse window, default 30 |
 | `RSTUF_REQUEST_TIMEOUT_SECONDS` | no | upstream request ceiling, default 10 |
-| `RSTUF_FRONTEND_DIR` | no | where the interface's files are; set empty to serve the API alone |
 
 ## Container image
 

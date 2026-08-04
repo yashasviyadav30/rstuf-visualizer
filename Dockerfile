@@ -43,8 +43,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1
 
 # The layout of the source tree is kept, so the backend finds the interface
-# where it expects it and RSTUF_FRONTEND_DIR stays an override rather than a
-# requirement.
+# beside it, exactly as it does when run from a checkout.
 WORKDIR /srv/backend
 COPY backend/app ./app
 COPY frontend /srv/frontend
