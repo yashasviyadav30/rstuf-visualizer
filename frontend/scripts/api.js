@@ -14,6 +14,11 @@
   // unreachable server reports itself instead of leaving the page waiting.
   const TIMEOUT_MS = 15000;
 
+  // A repository can list thousands of artifacts. Asking for all of them
+  // would build a page nobody can read, so the browser asks for one page and
+  // the reader moves through them.
+  const PAGE_SIZE = 50;
+
   class ApiError extends Error {
     constructor(message, status) {
       super(message);
@@ -61,8 +66,14 @@
       request(`/overview${refresh ? '?refresh=true' : ''}`),
     role: (name) => request(`/roles/${encodeURIComponent(name)}`),
     roots: () => request('/roots'),
-    artifacts: (search) =>
-      request(`/artifacts?search=${encodeURIComponent(search || '')}`),
+    artifacts: (search, page, pageSize) => {
+      const query = new URLSearchParams({
+        search: search || '',
+        page: String(page || 1),
+        page_size: String(pageSize || PAGE_SIZE),
+      });
+      return request(`/artifacts?${query}`);
+    },
     status: () => request('/status'),
   };
 })();

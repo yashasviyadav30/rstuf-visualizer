@@ -76,6 +76,8 @@ class DelegatedView:
         default_factory=list
     )
     note: str | None = None
+    raw: bytes = b""
+    """The bytes that were checked, kept so they can be shown unaltered."""
 
 
 @dataclass
@@ -350,6 +352,7 @@ def _fetch_delegated(
         delegates_to=_delegated_names(child),
         artifacts=sorted(artifacts),
         note=note,
+        raw=response.content,
     )
 
 

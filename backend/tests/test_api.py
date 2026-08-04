@@ -127,7 +127,9 @@ class TestRoleDetail:
         assert body["status"] == "valid"
         assert body["signatures_present"] == 1
         assert body["threshold"] == 1
-        assert body["artifacts"][0]["path"] == "bins-0/example-0.tar.gz"
+        assert all(
+            item["path"].startswith("bins-0/") for item in body["artifacts"]
+        )
 
     def test_reports_the_key_the_parent_declared(self, visualizer) -> None:
         """A delegated role is signed by keys named in its parent, not by a
@@ -156,15 +158,24 @@ class TestArtifacts:
     def test_lists_artifacts_from_the_delegated_roles(
         self, visualizer
     ) -> None:
-        body = visualizer("good").get("/api/v1/artifacts").json()
+        client = visualizer("good")
+        body = client.get(
+            "/api/v1/artifacts", params={"page_size": 500}
+        ).json()
 
-        assert body["total"] == 2
+        # The total is what the bins between them declare, gathered by the
+        # service rather than counted here.
+        declared = sum(
+            len(client.get(f"/api/v1/roles/{name}").json()["artifacts"])
+            for name in ("bins-0", "bins-1")
+        )
+        assert body["total"] == declared
         assert {a["role"] for a in body["artifacts"]} == {"bins-0", "bins-1"}
 
     def test_filters_by_search_term(self, visualizer) -> None:
         body = (
             visualizer("good")
-            .get("/api/v1/artifacts", params={"search": "example-1"})
+            .get("/api/v1/artifacts", params={"search": "urllib3-1.4"})
             .json()
         )
 
@@ -172,14 +183,31 @@ class TestArtifacts:
         assert body["artifacts"][0]["role"] == "bins-1"
 
     def test_pages_the_results(self, visualizer) -> None:
-        body = (
-            visualizer("good")
-            .get("/api/v1/artifacts", params={"page": 2, "page_size": 1})
-            .json()
+        client = visualizer("good")
+        first = client.get(
+            "/api/v1/artifacts", params={"page": 1, "page_size": 10}
+        ).json()
+        second = client.get(
+            "/api/v1/artifacts", params={"page": 2, "page_size": 10}
+        ).json()
+
+        assert len(first["artifacts"]) == 10
+        assert len(second["artifacts"]) == 10
+        # Consecutive pages, not the same ten twice.
+        assert {a["path"] for a in first["artifacts"]}.isdisjoint(
+            a["path"] for a in second["artifacts"]
         )
 
-        assert body["total"] == 2
-        assert len(body["artifacts"]) == 1
+    def test_a_default_page_holds_less_than_the_total(
+        self, visualizer
+    ) -> None:
+        """The count and the rows describe different things, so a reader
+        given fifty rows beside a total of sixty-four needs a way to the
+        rest. This is the case the fixture exists to reach."""
+        body = visualizer("good").get("/api/v1/artifacts").json()
+
+        assert body["total"] > body["page_size"]
+        assert len(body["artifacts"]) == body["page_size"]
 
     def test_rejects_a_page_number_below_one(self, visualizer) -> None:
         response = visualizer("good").get(

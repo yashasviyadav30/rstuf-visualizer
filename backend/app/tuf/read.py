@@ -13,6 +13,7 @@ that were downloaded once.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 from tuf.api.metadata import Metadata
 
@@ -48,6 +49,17 @@ EXPIRING_SECONDS = 7 * CRITICAL_SECONDS
 
 def _plural(count: int, noun: str) -> str:
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
+def raw_url(name: str) -> str:
+    """Address the verified bytes for one role, on this service.
+
+    Not a link to the storage the files came from. The reader may not be able
+    to reach that address, and a fresh fetch from it would return whatever is
+    there now, unchecked. Serving the copy this service verified means the
+    link shows the document the page is describing.
+    """
+    return f"/api/v1/roles/{quote(name, safe='')}/raw"
 
 
 def expiry_band(
@@ -258,6 +270,7 @@ def build_role_detail(
         ],
         delegates_to=role.delegates_to,
         artifacts=artifacts,
+        raw_url=raw_url(name),
     )
 
 
@@ -447,4 +460,5 @@ def build_delegated_detail(
             )
             for path, length, hashes in loaded.artifacts
         ],
+        raw_url=raw_url(loaded.name),
     )

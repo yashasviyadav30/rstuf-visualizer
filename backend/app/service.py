@@ -32,6 +32,7 @@ from app.rstuf.client import RstufClient
 from app.tuf import read
 from app.tuf.roots import DEFAULT_HISTORY, RootHistory, load_root_history
 from app.tuf.trust import (
+    DelegatedView,
     MetadataUnavailableError,
     RepositoryView,
     UnknownRoleError,
@@ -156,13 +157,14 @@ class VisualizerService:
         view = await self.view(refresh=refresh)
         return read.build_overview(view, state)
 
-    async def role(self, name: str) -> RoleDetailResponse:
-        """Describe one role, fetching it only if it is delegated."""
-        view = await self.view()
+    @staticmethod
+    def _is_top_level(view: RepositoryView, name: str) -> bool:
+        return any(role.name == name for role in view.roles)
 
-        if any(role.name == name for role in view.roles):
-            return read.build_role_detail(view, name)
-
+    async def _delegated(
+        self, view: RepositoryView, name: str
+    ) -> DelegatedView:
+        """Fetch and check one delegated role, explaining a broken chain."""
         if name not in view.delegated and view.verification_error:
             # The delegation list lives in targets, which this repository
             # never got as far as verifying, so say that rather than claim
@@ -172,13 +174,43 @@ class VisualizerService:
                 f"{view.verification_error}"
             )
 
-        loaded = await load_delegated_role(
+        return await load_delegated_role(
             self._settings.metadata_url,
             view,
             name,
             self._settings.request_timeout_seconds,
         )
+
+    async def role(self, name: str) -> RoleDetailResponse:
+        """Describe one role, fetching it only if it is delegated."""
+        view = await self.view()
+
+        if self._is_top_level(view, name):
+            return read.build_role_detail(view, name)
+
+        loaded = await self._delegated(view, name)
         return read.build_delegated_detail(view, loaded)
+
+    async def raw_metadata(self, name: str) -> bytes:
+        """Return the bytes one role was verified from.
+
+        A top-level role is read back from the trust directory, which is
+        where the client wrote what it accepted. A delegated role is fetched
+        and checked now, and the bytes that passed that check are the ones
+        returned. Either way the reader sees the document this service
+        described, not a later fetch that nobody looked at.
+        """
+        view = await self.view()
+
+        if self._is_top_level(view, name):
+            path = self._trust_dir / f"{name}.json"
+            if not path.is_file():
+                raise MetadataUnavailableError(
+                    f"the verified copy of {name} is no longer on disk"
+                )
+            return path.read_bytes()
+
+        return (await self._delegated(view, name)).raw
 
     async def roots(self, limit: int = DEFAULT_HISTORY) -> RootsResponse:
         """Report root's history, and whether each rotation in it holds up.

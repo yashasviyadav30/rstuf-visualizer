@@ -152,6 +152,13 @@ class RoleDetailResponse(BaseModel):
     )
     delegates_to: list[str] = Field(default_factory=list)
     artifacts: list[ArtifactSummary] = Field(default_factory=list)
+    raw_url: str = Field(
+        default="",
+        description=(
+            "Where to read the bytes this role was verified from, served by "
+            "this service rather than linked to the storage behind it"
+        ),
+    )
 
 
 class ArtifactsResponse(BaseModel):

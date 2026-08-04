@@ -281,7 +281,8 @@ OverviewResponse
 |---|---|---|
 | roles table | `/api/v1/overview` | every role with signers, threshold, expiry, status |
 | tree | `/api/v1/overview` | the same data drawn as a graph |
-| role detail | `/api/v1/roles/{role}` | keys, signatures, expiry, and a link to the raw file |
+| role detail | `/api/v1/roles/{role}` | keys, signatures, expiry, and a link to the signed file |
+| signed file | `/api/v1/roles/{role}/raw` | the bytes that role was verified from |
 | artifacts | `/api/v1/artifacts` | path, hash and size, searchable and paged |
 | status | `/api/v1/status` | whether the repository is ready, and what awaits signing |
 | root history | `/api/v1/roots` | what changed between two versions of root |
@@ -385,12 +386,32 @@ for expiry. Old roots lapse as a matter of course, and a client checks expiry
 on the final root alone, so painting version 1 red would raise an alarm about
 a file nothing depends on.
 
+### Serving the file a role was verified from
+
+Each role links to the bytes behind it. The link points at this service, not
+at the storage the file came from, for two reasons: the reader may have no
+route to that storage, and a fresh fetch from it would return whatever is
+there now, which nobody has checked. A top-level role is served from the
+trust directory, where the client wrote what it accepted; a delegated role is
+fetched and checked on request and the bytes that passed are the ones sent.
+
+Those bytes come from a repository this service does not control, so they go
+out as a download with `nosniff`, never as something a browser will render.
+
 ### Drawing a tree that stays readable
 
-The tree is laid out by a hierarchical layout engine rather than by hand, so
-the shape follows the data. Delegated roles are collapsed behind a single node
-by default and expand on request, because a repository may hold sixteen of
-them or two hundred and fifty-six, and drawing them all at once helps nobody.
+Node positions are computed, not written down. Leaves take the next free
+column and a parent sits halfway between its first and last child, so the
+shape follows the metadata: a repository that delegates differently draws
+differently, and no role name appears in the layout. The alternative, a
+layout library, would mean a build step the interface deliberately avoids,
+and the shape a TUF repository makes is too shallow to need one.
+
+Delegated roles are collapsed behind a single node by default and expand on
+request, because a repository may hold sixteen of them or two hundred and
+fifty-six. Expanded, they are drawn as a block of chips under one connector
+rather than as two hundred and fifty-six separate branches, which would hide
+the structure they are meant to show.
 
 ---
 

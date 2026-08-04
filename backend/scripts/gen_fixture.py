@@ -31,6 +31,7 @@ from __future__ import annotations
 import json
 import shutil
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from pathlib import Path
 
 from securesystemslib.signer import CryptoSigner
@@ -52,6 +53,21 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 ONLINE_ROLES = ("timestamp", "snapshot", "targets")
 BINS = ["bins-0", "bins-1"]
 
+# Named after real packages so the artifact list reads like an index rather
+# than a placeholder. Eight packages at four versions fills each bin with
+# thirty-two, which is more than one page of the interface holds.
+PACKAGES = (
+    "certifi",
+    "charset-normalizer",
+    "click",
+    "idna",
+    "jinja2",
+    "markupsafe",
+    "requests",
+    "urllib3",
+)
+VERSIONS_PER_PACKAGE = 4
+
 KEY_NAME = "x-rstuf-key-name"
 ONLINE_KEY_URI = "x-rstuf-online-key-uri"
 
@@ -69,6 +85,32 @@ def _named(signer: CryptoSigner, name: str, online: bool) -> CryptoSigner:
     if online:
         fields[ONLINE_KEY_URI] = f"fn:{signer.public_key.keyid}"
     return signer
+
+
+def _artifacts(bin_name: str, offset: int) -> list[tuple[str, TargetFile]]:
+    """List the artifacts one bin vouches for.
+
+    Enough of them that the interface has to page through the list rather
+    than showing every one, which is the case a two-line fixture never
+    reaches. The files themselves do not exist: this repository is about
+    metadata, and the metadata is what is signed.
+    """
+    listed: list[tuple[str, TargetFile]] = []
+    for package in PACKAGES:
+        for minor in range(VERSIONS_PER_PACKAGE):
+            path = f"{bin_name}/{package}-1.{minor + offset}.0.tar.gz"
+            digest = sha256(path.encode("utf-8")).hexdigest()
+            listed.append(
+                (
+                    path,
+                    TargetFile(
+                        length=4096 + len(path) * 97,
+                        hashes={"sha256": digest},
+                        path=path,
+                    ),
+                )
+            )
+    return listed
 
 
 def _root_version(
@@ -140,11 +182,8 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
     bins: dict[str, Targets] = {}
     for index, name in enumerate(BINS):
         bin_targets = Targets(expires=_expiry(30))
-        bin_targets.targets[f"{name}/example-{index}.tar.gz"] = TargetFile(
-            length=1024 * (index + 1),
-            hashes={"sha256": f"{index}" * 64},
-            path=f"{name}/example-{index}.tar.gz",
-        )
+        for path, target in _artifacts(name, index):
+            bin_targets.targets[path] = target
         bins[name] = bin_targets
 
     # --- snapshot: pins the version of every other metadata file ---

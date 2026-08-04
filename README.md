@@ -38,6 +38,7 @@ it.
 |---|---|
 | `/api/v1/overview` | every role, its state, and the delegation tree |
 | `/api/v1/roles/{role}` | one role's keys, signatures and expiry |
+| `/api/v1/roles/{role}/raw` | the bytes that role was verified from |
 | `/api/v1/roots` | how root reached its current version, rotation by rotation |
 | `/api/v1/artifacts` | the artifacts the repository vouches for, searchable |
 | `/api/v1/status` | what the RSTUF API reports, when one is configured |
