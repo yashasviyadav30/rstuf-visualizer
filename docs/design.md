@@ -463,6 +463,7 @@ templates/
 ├── deployment.yaml       image, probes, environment, security context
 ├── service.yaml
 ├── ingress.yaml
+├── secret.yaml           the trust anchor
 ├── serviceaccount.yaml
 ├── hpa.yaml
 ├── _helpers.tpl
@@ -474,15 +475,39 @@ Settings arrive as environment variables declared in values, the same way
 RSTUF passes its own. Adding the chart to the demo is one dependency entry,
 switched by `enabled`, as every other component there already is.
 
+The trust anchor goes in a Secret rather than into the deployment's
+environment. Root metadata is published, so this is not a secret in the usual
+sense, but it decides what the service will believe, and that deserves to be
+as hard to edit unnoticed as a credential.
+
+The pod needs no write access to its own files and is given none: the root
+filesystem is read-only, privilege escalation is off, every capability is
+dropped, and it runs as an unprivileged user. The single directory it does
+write is the trust directory holding verified metadata, mounted as an
+`emptyDir`. Losing that costs one verification pass, so nothing is persisted.
+
+Both probes ask `/healthz`, which reports only that the process is running. A
+repository in trouble is what this service exists to show, so it must never
+be what takes the pod down.
+
 ### Serving the metadata
 
 The client needs a URL, and a storage bucket alone is not one. Something must
-answer HTTP requests for the metadata files, wherever they live. RSTUF
-already provides this in its local deployment, where a small web server
-serves the worker's storage. The chart treats that server as part of the
-deployment: its address is what `RSTUF_METADATA_URL` points at, and the
-configuration must work out of the box whether the files sit in S3, in a
-volume, or behind an existing server, on cloud or on premise.
+answer HTTP requests for the metadata files, wherever they live.
+
+RSTUF's own deployments split on this. The docker-compose deployment already
+publishes its storage over HTTP, with a small server on port 8080 in front of
+the worker's directory. The Helm demo does not: it writes to a LocalStack S3
+bucket created with `awslocal s3 mb` and no public-read policy, so nothing
+answers an anonymous GET for `timestamp.json`. Whoever installs this chart
+has to supply that address, which is why `metadataUrl` is required and has no
+default: a guess would let the chart install cleanly while pointing at
+nothing.
+
+The configuration must work whether the files sit in S3, in a volume, or
+behind an existing server, on cloud or on premise. Closing the gap in the
+demo chart is a separate question, and one for RSTUF rather than for this
+service.
 
 `/healthz` answers for the orchestrator only. It reports that the process is
 running and says nothing about the repository, whose health appears on screen.

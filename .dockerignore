@@ -1,0 +1,22 @@
+# Keep the build context to what the image actually needs: the backend's
+# application code, its dependency lock, and the interface.
+
+.git
+.gitignore
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.venv
+
+backend/tests
+backend/fixtures
+backend/scripts
+backend/tox.ini
+backend/Makefile
+backend/.pre-commit-config.yaml
+
+charts
+docs
+*.md
+Dockerfile
+.dockerignore

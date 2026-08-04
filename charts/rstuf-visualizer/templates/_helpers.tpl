@@ -1,0 +1,85 @@
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "rstuf-visualizer.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+*/}}
+{{- define "rstuf-visualizer.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "rstuf-visualizer.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "rstuf-visualizer.labels" -}}
+helm.sh/chart: {{ include "rstuf-visualizer.chart" . }}
+{{ include "rstuf-visualizer.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "rstuf-visualizer.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "rstuf-visualizer.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "rstuf-visualizer.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "rstuf-visualizer.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Add extra annotations to every resource
+*/}}
+{{- define "rstuf-visualizer.annotations" -}}
+{{- with .Values.extraAnnotations }}
+{{- range $annotation, $value := index . }}
+{{ $annotation }}: {{ tpl $value $ | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Name of the Secret holding the trust anchor, whether this chart created it or
+the operator brought their own.
+*/}}
+{{- define "rstuf-visualizer.trustedRootSecret" -}}
+{{- if .Values.trustedRoot.existingSecret }}
+{{- .Values.trustedRoot.existingSecret }}
+{{- else }}
+{{- printf "%s-trusted-root" (include "rstuf-visualizer.fullname" .) }}
+{{- end }}
+{{- end }}

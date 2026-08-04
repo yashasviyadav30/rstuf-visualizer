@@ -1,0 +1,12 @@
+# Values used by chart-testing, which lints and installs the chart with these
+# in place of the defaults.
+#
+# metadataUrl has no default worth shipping: it names the web server standing
+# in front of a particular deployment's storage, and guessing it would let a
+# chart install cleanly while pointing at nothing.
+metadataUrl: "http://rstuf-metadata/"
+apiUrl: "http://rstuf-api"
+
+image:
+  repository: ghcr.io/repository-service-tuf/rstuf-visualizer
+  tag: "0.1.0"

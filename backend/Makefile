@@ -1,5 +1,5 @@
 .PHONY: all tests clean purge run-dev stop build-dev reformat precommit \
-	coverage fixtures help
+	coverage fixtures chart-lint help
 
 all: help
 
@@ -21,23 +21,29 @@ coverage:  ## Run tests with coverage
 fixtures:  ## Generate local TUF repositories for development
 	python scripts/gen_fixture.py
 
+# The image carries the interface as well as the backend, so it is built from
+# the repository root rather than from here.
 build-dev:  ## Build the dev image
-	docker build -t rstuf-visualizer:dev .
+	docker build -t rstuf-visualizer:dev -f ../Dockerfile ..
 
 run-dev:  ## Run the development environment
-	$(MAKE) build-dev
-	docker compose up --remove-orphans
+	$(MAKE) fixtures
+	docker compose -f ../compose.yaml up --build --remove-orphans
 
 stop:  ## Stop the development environment
-	docker compose down -v
+	docker compose -f ../compose.yaml down -v
 
 clean:  ## Clean up the environment
 	$(MAKE) stop
-	docker compose rm --force
+	docker compose -f ../compose.yaml rm --force
 
 purge:  ## Remove all images and containers
 	$(MAKE) clean
 	docker rmi rstuf-visualizer:dev --force
+
+chart-lint:  ## Lint the Helm chart the way its CI does
+	helm lint ../charts/rstuf-visualizer \
+		--values ../charts/rstuf-visualizer/ci/default-values.yaml
 
 help:  ## Show this message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \

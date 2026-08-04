@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+#
+# The whole thing running locally: a web server publishing a generated TUF
+# repository, and the visualizer reading it.
+#
+#     cd backend && make fixtures     # the repositories are not committed
+#     docker compose up --build
+#
+# Then open http://localhost:8000.
+
+services:
+  # Stands in for whatever publishes a real deployment's metadata. RSTUF
+  # writes to storage, and storage is not an address a client can read.
+  metadata:
+    image: python:3.13-slim
+    command: python -m http.server -d /srv/metadata 8080
+    volumes:
+      - ./backend/fixtures/good:/srv/metadata:ro
+    ports:
+      # Published only so the raw files can be read alongside the interface.
+      # Not 8080, because RSTUF's own deployment publishes its metadata server
+      # there, and anyone working on this is likely to have that running.
+      - "${METADATA_PORT:-8090}:8080"
+
+  visualizer:
+    build: .
+    depends_on:
+      - metadata
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    # The service writes nothing but the trust directory, so prove it here
+    # rather than only claiming it in the chart.
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      RSTUF_METADATA_URL: http://metadata:8080/
+      # Base64 of http://metadata:8080/1.root.json
+      #
+      # The anchor is the first version of root, so every start walks the
+      # rotations published since and settles on the newest. Fetching it from
+      # the server being checked is fine for a fixture; a real deployment
+      # should be handed the root it already trusts.
+      RSTUF_TRUSTED_ROOT: aHR0cDovL21ldGFkYXRhOjgwODAvMS5yb290Lmpzb24=

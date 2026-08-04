@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rstuf-visualizer.fullname" . }}
+  labels:
+    {{- include "rstuf-visualizer.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "rstuf-visualizer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "rstuf-visualizer.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "rstuf-visualizer.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.initContainers }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            # The TUF client writes every file it has verified here. With a
+            # read-only root filesystem this is the only place it can.
+            - name: trust-dir
+              mountPath: /tmp
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          env:
+            - name: RSTUF_METADATA_URL
+              value: {{ required "rstuf-visualizer: metadataUrl must point at the web server publishing the TUF metadata" .Values.metadataUrl | quote }}
+            {{- if .Values.apiUrl }}
+            - name: RSTUF_API_URL
+              value: {{ .Values.apiUrl | quote }}
+            {{- end }}
+            {{- if or .Values.trustedRoot.value .Values.trustedRoot.existingSecret }}
+            - name: RSTUF_TRUSTED_ROOT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rstuf-visualizer.trustedRootSecret" . }}
+                  key: {{ .Values.trustedRoot.key }}
+            {{- end }}
+            - name: RSTUF_CACHE_TTL_SECONDS
+              value: {{ .Values.cacheTtlSeconds | quote }}
+            - name: RSTUF_REQUEST_TIMEOUT_SECONDS
+              value: {{ .Values.requestTimeoutSeconds | quote }}
+            {{- if not .Values.ui.enabled }}
+            # Set but empty means serve nothing, leaving the API on its own.
+            - name: RSTUF_FRONTEND_DIR
+              value: ""
+            {{- end }}
+      volumes:
+        - name: trust-dir
+          emptyDir:
+            sizeLimit: {{ .Values.trustDir.sizeLimit }}
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
