@@ -44,10 +44,35 @@ class TTLCache:
             return False, None
         return True, value
 
+    def _prune(self) -> None:
+        """Drop what has gone stale, so the process does not grow.
+
+        Keys carry the version they describe, and a repository issues a new
+        version every time its worker renews a role. Without this, a service
+        left running would hold one entry for every version it ever saw.
+
+        Locks go with their entries, but only the ones nobody holds. A caller
+        takes a lock with no await between reaching for it and entering it,
+        so an unlocked lock has no waiter left to strand.
+        """
+        now = time.monotonic()
+        for key in [
+            key
+            for key, (stored_at, _) in self._entries.items()
+            if (now - stored_at) >= self._ttl
+        ]:
+            del self._entries[key]
+
+        for key, lock in list(self._locks.items()):
+            if key not in self._entries and not lock.locked():
+                del self._locks[key]
+
     async def get_or_build(
         self, key: str, build: Callable[[], Awaitable[Any]]
     ) -> Any:
         """Return the cached value for ``key``, building it if needed."""
+        self._prune()
+
         hit, value = self._fresh(key)
         if hit:
             return value
@@ -67,3 +92,6 @@ class TTLCache:
     def clear(self) -> None:
         """Drop every entry, so the next request goes to the repository."""
         self._entries.clear()
+        for key, lock in list(self._locks.items()):
+            if not lock.locked():
+                del self._locks[key]

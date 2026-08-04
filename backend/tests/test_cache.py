@@ -98,3 +98,49 @@ async def test_separate_keys_do_not_block_each_other() -> None:
 
     assert await cache.get_or_build("a", build_a) == "a"
     assert await cache.get_or_build("b", build_b) == "b"
+
+
+@pytest.mark.asyncio
+async def test_does_not_grow_as_versions_come_and_go() -> None:
+    """Keys carry the version they describe, and RSTUF issues a new one every
+    time its worker renews a role. A service left running for a week would
+    otherwise hold a week of them.
+    """
+    cache = TTLCache(ttl_seconds=0)
+
+    async def build() -> str:
+        return "value"
+
+    for version in range(50):
+        await cache.get_or_build(f"artifacts:{version}", build)
+
+    # Everything written has already outlived a zero-second lifetime, so only
+    # the entry from this pass survives, and no lock outlives its entry.
+    assert len(cache._entries) <= 1
+    assert len(cache._locks) <= 1
+
+
+@pytest.mark.asyncio
+async def test_keeps_a_lock_that_someone_is_holding() -> None:
+    """Pruning must not take a lock out from under a caller mid-build."""
+    cache = TTLCache(ttl_seconds=0)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def slow() -> str:
+        started.set()
+        await release.wait()
+        return "slow"
+
+    async def quick() -> str:
+        return "quick"
+
+    task = asyncio.create_task(cache.get_or_build("shared", slow))
+    await started.wait()
+
+    # A second key going through prunes while the first is still building.
+    await cache.get_or_build("other", quick)
+    assert cache._locks["shared"].locked()
+
+    release.set()
+    assert await task == "slow"
