@@ -121,6 +121,11 @@ python scripts/gen_fixture.py
 python -m http.server 8080 --directory fixtures/good
 ```
 
+The valid repository carries a one-day timestamp, matching how RSTUF renews
+that role, so it lapses overnight. `run_local.sh` and the test suite rebuild
+it when it does; `docker compose up` on its own does not, so run
+`make fixtures` if a demo reports an expiry you did not expect.
+
 Point `RSTUF_METADATA_URL` at that server to exercise the metadata layer
 against genuine signatures.
 

@@ -5,10 +5,15 @@
 # The whole thing running locally: a web server publishing a generated TUF
 # repository, and the visualizer reading it.
 #
-#     cd backend && make fixtures     # the repositories are not committed
-#     docker compose up --build
+#     cd backend && make run-dev
 #
 # Then open http://localhost:8000.
+#
+# That target rebuilds the repositories first, which matters: the generated
+# timestamp lasts a day, matching how RSTUF renews that role, so one built
+# yesterday is genuinely stale. Reaching for `docker compose up` directly
+# skips that step, and the page will report an expiry that is real but says
+# nothing about the code. Run `make fixtures` if that happens.
 
 services:
   # Stands in for whatever publishes a real deployment's metadata. RSTUF
