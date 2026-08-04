@@ -501,6 +501,25 @@
     $('artifact-next').disabled = data.page >= pages;
   }
 
+  // Delegated roles are siblings, so one that cannot be read costs only its
+  // own artifacts. Saying which ones is the difference between a short list
+  // and a short list nobody can account for.
+  function renderShortfall(missing) {
+    const note = $('artifact-shortfall');
+
+    if (!missing.length) {
+      note.hidden = true;
+      return;
+    }
+
+    note.innerHTML =
+      `<strong>Incomplete.</strong> ${missing.length} delegated ` +
+      `${missing.length === 1 ? 'role' : 'roles'} could not be read, so ` +
+      'whatever they list is missing from this page and from the count: ' +
+      missing.map((name) => esc(name)).join(', ');
+    note.hidden = false;
+  }
+
   async function loadArtifacts() {
     const body = $('artifacts-body');
     const requested = state.artifactPage;
@@ -516,6 +535,7 @@
       if (state.artifactPage !== requested) return;
 
       renderPager(data);
+      renderShortfall(data.unavailable || []);
 
       if (!data.artifacts.length) {
         body.innerHTML =
@@ -537,6 +557,7 @@
         .join('');
     } catch (err) {
       $('artifact-pager').hidden = true;
+      $('artifact-shortfall').hidden = true;
       body.innerHTML = `<tr><td colspan="4" class="state state--invalid">${esc(
         err.message
       )}</td></tr>`;

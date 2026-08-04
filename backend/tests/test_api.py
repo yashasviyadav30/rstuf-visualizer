@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from app import service as service_module
+from app.tuf.trust import MetadataUnavailableError
 from tests.conftest import requires_fixtures, requires_symlinks
 
 
@@ -185,6 +186,29 @@ class TestArtifacts:
         )
 
         assert response.status_code == 422
+
+    def test_names_the_roles_it_could_not_read(
+        self, visualizer, monkeypatch
+    ) -> None:
+        """A bin that cannot be fetched costs its own artifacts and no
+        others. A list quietly short of a hundred entries is worse than one
+        that says which hundred are missing."""
+        original = service_module.load_delegated_role
+
+        async def one_bin_fails(metadata_url, view, name, timeout=10.0):
+            if name == "bins-1":
+                raise MetadataUnavailableError(f"could not fetch {name}")
+            return await original(metadata_url, view, name, timeout)
+
+        monkeypatch.setattr(
+            service_module, "load_delegated_role", one_bin_fails
+        )
+
+        body = visualizer("good").get("/api/v1/artifacts").json()
+
+        assert body["unavailable"] == ["bins-1"]
+        assert {a["role"] for a in body["artifacts"]} == {"bins-0"}
+        assert body["total"] > 0
 
     def test_reads_each_delegated_role_once_however_many_pages(
         self, visualizer, monkeypatch

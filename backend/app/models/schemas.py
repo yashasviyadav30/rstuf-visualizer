@@ -168,6 +168,14 @@ class ArtifactsResponse(BaseModel):
     page: int
     page_size: int
     artifacts: list[ArtifactSummary] = Field(default_factory=list)
+    unavailable: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Delegated roles that could not be read. Whatever they list is "
+            "missing from this page, and from the total beside it, so the "
+            "shortfall is named rather than left to look like an empty bin"
+        ),
+    )
 
 
 class StatusResponse(BaseModel):

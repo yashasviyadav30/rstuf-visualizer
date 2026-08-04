@@ -32,6 +32,13 @@ RSTUF API; size caps and timeouts are enforced somewhere the viewer cannot
 disable them; and the response shapes stay stable while the metadata format
 moves. It is also the one place a future write path can attach.
 
+The shape that follows is a backend for frontend. This service is not a
+general API for anyone to build on; it exists to answer the questions one
+interface asks, and its responses are cut to those questions rather than
+mirroring the metadata. That is why the browser never sees a TUF structure,
+why two upstreams of different kinds sit behind one door, and why a screen
+costs one request instead of five.
+
 ---
 
 ## 2. Three sets of addresses

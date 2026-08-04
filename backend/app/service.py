@@ -245,15 +245,18 @@ class VisualizerService:
 
     async def _gather_artifacts(
         self, view: RepositoryView
-    ) -> list[ArtifactSummary]:
+    ) -> tuple[list[ArtifactSummary], list[str]]:
         """Read every artifact the repository vouches for, once.
 
         Delegated roles are fetched here because listing artifacts is exactly
         the request that needs their contents. Opening the page is the
         consent; loading them at startup would not be.
 
-        A bin that cannot be fetched is left out and logged. One unreachable
-        bin should cost its own artifacts, not the whole listing.
+        Returns what was read and the names of the roles that could not be.
+        Delegated roles are siblings rather than a chain, so one unreachable
+        bin costs its own artifacts and no others. It is named in the answer,
+        because a list quietly short of a hundred entries is worse than a list
+        that says which hundred are missing.
         """
         collected: list[ArtifactSummary] = []
 
@@ -289,8 +292,10 @@ class VisualizerService:
             *(fetch(name) for name in sorted(view.delegated))
         )
 
+        unavailable: list[str] = []
         for name, loaded in results:
             if loaded is None:
+                unavailable.append(name)
                 continue
             for path, length, hashes in loaded.artifacts:
                 collected.append(
@@ -300,7 +305,7 @@ class VisualizerService:
                 )
 
         collected.sort(key=lambda item: item.path)
-        return collected
+        return collected, unavailable
 
     async def artifacts(
         self, search: str = "", page: int = 1, page_size: int = 50
@@ -316,7 +321,7 @@ class VisualizerService:
         snapshot = view.documents.get("snapshot")
         version = getattr(snapshot.signed, "version", 0) if snapshot else 0
 
-        collected = await self._cache.get_or_build(
+        collected, unavailable = await self._cache.get_or_build(
             f"artifacts:{version}", lambda: self._gather_artifacts(view)
         )
 
@@ -332,6 +337,7 @@ class VisualizerService:
             page=page,
             page_size=page_size,
             artifacts=collected[start:end],
+            unavailable=unavailable,
         )
 
     async def status(self) -> StatusResponse:
