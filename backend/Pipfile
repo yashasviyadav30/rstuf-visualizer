@@ -1,5 +1,6 @@
-# The libraries this service needs, by name only. Pipfile.lock pins the exact
-# versions and their hashes, and that is what every install reads.
+# The libraries this service needs, listed by name with no versions.
+# Pipfile.lock beside it holds the exact version and hash of each one, and
+# that is the file an install actually reads.
 
 [[source]]
 url = "https://pypi.org/simple"

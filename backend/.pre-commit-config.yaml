@@ -1,5 +1,6 @@
-# Checks that run on `git commit`, before anything is pushed. Four of them are
-# the tools CI runs as well, so a failure here is a red build caught early.
+# Runs when you type `git commit`. If the code is misformatted or has an
+# obvious bug, it stops the commit here, before the code reaches GitHub.
+# CI runs the same four tools later, so this only catches them sooner.
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks

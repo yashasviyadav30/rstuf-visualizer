@@ -1,5 +1,6 @@
-# Shortcuts for the commands used while developing this service. Nothing here
-# is needed to build or run it; `make help` lists what is available.
+# Short names for long commands. `make help` prints them all: `make tests`
+# runs the tests, `make run-local` starts the service on this machine.
+# None of it is needed to build or ship the service; it only saves typing.
 
 .PHONY: all tests clean purge run-dev run-local stop build-dev reformat \
 	precommit coverage fixtures chart-lint help
