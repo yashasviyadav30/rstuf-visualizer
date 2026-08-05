@@ -1,3 +1,6 @@
+# The libraries this service needs, by name only. Pipfile.lock pins the exact
+# versions and their hashes, and that is what every install reads.
+
 [[source]]
 url = "https://pypi.org/simple"
 verify_ssl = true

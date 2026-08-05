@@ -1,3 +1,6 @@
+# What the project is called, and the settings pytest reads. Dependencies are
+# not here: they live in the Pipfile, the way RSTUF's own services keep them.
+
 [project]
 name = "rstuf-visualizer"
 version = "0.1.0"

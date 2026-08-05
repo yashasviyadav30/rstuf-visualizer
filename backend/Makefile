@@ -1,3 +1,6 @@
+# Shortcuts for the commands used while developing this service. Nothing here
+# is needed to build or run it; `make help` lists what is available.
+
 .PHONY: all tests clean purge run-dev run-local stop build-dev reformat \
 	precommit coverage fixtures chart-lint help
 

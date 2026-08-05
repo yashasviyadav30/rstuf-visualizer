@@ -1,3 +1,6 @@
+# Checks that run on `git commit`, before anything is pushed. Four of them are
+# the tools CI runs as well, so a failure here is a red build caught early.
+
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v6.0.0
