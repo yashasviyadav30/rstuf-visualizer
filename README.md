@@ -42,6 +42,15 @@ when none is.
 These are taken by `make screenshots`, which drives a real browser against a
 generated repository, so they cannot drift from what the interface draws.
 
+## Reading further
+
+| Document | Answers |
+|---|---|
+| [docs/design.md](docs/design.md) | how the repository is read, checked, shown and shipped |
+| [docs/decisions.md](docs/decisions.md) | the choices that went a different way, and why |
+| [docs/deploying-into-rstuf-demo.md](docs/deploying-into-rstuf-demo.md) | what it takes to reach RSTUF's own deployment |
+| [CONTRIBUTING.rst](CONTRIBUTING.rst) | how to send a change, including the DCO sign-off |
+
 ## Requirements
 
 - Python 3.13 or newer
@@ -185,7 +194,7 @@ The suite is split by what each test is allowed to touch:
 |---|---|
 | `make test-unit` | 38 tests that reach nothing outside the process, in under a second |
 | `make test-integration` | 53 tests driven against repositories built with real keys |
-| `make test-e2e` | 9 tests that open the built page in a real browser |
+| `make test-e2e` | 14 tests that open the built page in a real browser |
 | `make test-docker` | the whole backend suite on Linux, where nothing skips |
 | `npm run lint` (in `frontend/`) | ESLint, including the rules of hooks |
 

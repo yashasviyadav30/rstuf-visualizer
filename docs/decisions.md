@@ -1,0 +1,104 @@
+# Decisions
+
+Choices that went a different way from the obvious one, and why. Kept short
+on purpose: the reasoning belongs somewhere a reviewer can find it, not in
+whoever happened to write the code.
+
+The longer arguments about how the service reads a repository are in
+[design.md](design.md). This file is for the ones a reader is most likely to
+ask about because they differ from what was suggested.
+
+---
+
+## Vitest rather than Jest
+
+Jest was suggested. Vitest runs the same API, uses the project's existing Vite
+configuration, and needs no second toolchain to transform TypeScript. Jest
+would mean adding one and keeping it in step.
+
+Anything written for Jest runs here unchanged, so this is a swap of runner,
+not of testing style.
+
+## Playwright in Python, driven by pytest
+
+Playwright was suggested for the interface. It is used, and it drives a real
+Chromium against the compiled page. It runs from `backend/tests/e2e` rather
+than from `frontend/`, for one practical reason: an end-to-end test has to
+start the backend pointed at a generated TUF repository, and that generator is
+Python that already exists. Driving it from Node would mean building it twice.
+
+One runner, one language in CI, and the fixtures come for free.
+
+The cost, stated plainly: someone looking for browser tests will look in
+`frontend/` first and not find them.
+
+## TanStack Query rather than a hook of our own
+
+There was a hook of our own first, about sixty lines, and it worked. ESLint's
+rules of hooks then found three faults in it: a ref written during a render,
+and two effects writing state synchronously.
+
+Those are the faults a query library exists to remove. Removing sixty subtle
+lines is worth one dependency, and it left no rule disabled anywhere in the
+project.
+
+Nothing is treated as going stale on its own. The backend already reuses a
+verified reading briefly and declines a refresh that cannot tell it anything
+new, so a second cache in front of it with its own opinions would only
+disagree with the first.
+
+## No router
+
+Four tabs, one page, and no address bar state. A router would earn its place
+the moment a screen needs a link someone can send.
+
+The cost: no deep links, and reloading returns to the first tab.
+
+## One service class, not several
+
+`metadata_fetch_service.py` was the shape suggested, and the plural was
+meant. There is one class instead, because the cache and its per-key lock are
+state on that object and they are what stops two verification passes writing
+the same trust directory at once. Several services would mean several locks
+over one directory, and no test running sequentially would catch it.
+
+See [design.md](design.md), section 11.
+
+## Authentication is a seam, not a feature
+
+`middleware/auth.py` enforces nothing and says so. This service is read-only
+over metadata that is already published, so there is nothing here to keep from
+a visitor. What changes that is write access, and the seam sits in front of
+the handlers because per-role permissions are a question about the caller
+rather than about the metadata.
+
+## Pull requests larger than 500 lines
+
+The rule asked for was under 500, and it is right for day-to-day work.
+
+Landing a finished project does not fit it. About 9,900 reviewable lines would
+be roughly twenty pull requests, which cannot be read in the time available,
+and a stack that deep breaks whenever an earlier branch moves. The work is cut
+into eight instead, in dependency order, six of them between 550 and 1,000
+lines.
+
+The two large ones split further if that is preferred: the tests divide into
+unit, integration and browser; the last divides into the chart and the
+documents.
+
+---
+
+## Not done, and why
+
+**Component tests.** Eleven tests cover the two pieces with rules worth
+testing on their own, the tree layout and the header verdict. The components
+themselves are covered end to end, in a browser, against a real repository,
+which is where a rendering fault actually shows. Per-component render tests
+would add a third layer without a third kind of failure to catch.
+
+**Accessibility beyond the basics.** The tabs are buttons rather than a
+labelled tablist, and the search field has a placeholder rather than a label.
+Both are worth fixing and neither is done.
+
+**Metrics.** The service logs and exports no counters. Every request passes
+one middleware stack, so they attach there without touching a route.
