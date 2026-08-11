@@ -121,13 +121,32 @@ the root then arrives from the same deployment being checked, and it is the
 right trade for a demo where nobody has a root to hand over. Any install that
 matters should set `trustedRoot` instead.
 
-## What is needed from RSTUF
+## It takes two pull requests, in this order
 
-**The chart has to be published.** The dependency entry points at
-`repository-service-tuf.github.io/helm-charts`, which does not carry
-`rstuf-visualizer` yet. Until it does, the entry resolves to nothing. That is
-a decision about whether this belongs in the org's chart repository, and it
-is the only thing blocking the integration.
+`helm-charts/.github/workflows/release.yml` runs `chart-releaser` on every
+push to `main`, and it packages **every chart under `charts/`** and publishes
+it to `repository-service-tuf.github.io/helm-charts`. So publishing this chart
+is the same act as adding it to that repository. There is nothing else to
+arrange.
 
-**A version bump.** The change above takes `rstuf-demo` from 0.3.14 to 0.4.0,
-since it adds a component rather than fixing one.
+That does mean the work cannot arrive as one change:
+
+1. **Add `charts/rstuf-visualizer/`.** On merge, chart-releaser publishes
+   version 0.1.0 to the index.
+2. **Point `rstuf-demo` at it.** The dependency resolves 0.1.0 from the index
+   that now carries it, and `rstuf-demo` goes to 0.4.0, since it gains a
+   component rather than fixing one.
+
+Combined or reversed, the `ct install` job in `test.yml` fails: the demo would
+ask the index for a chart that is not in it yet.
+
+## What is still open
+
+**The image the chart points at.** `image.repository` defaults to
+`ghcr.io/repository-service-tuf/rstuf-visualizer`, which is where it belongs
+once this lives in the org, and where nothing is published today. Until then
+an install needs `--set image.repository=` pointing at wherever the image was
+built. The chart's own CI does exactly that rather than pretending otherwise.
+
+**Whether the org wants it.** That is a question about scope, not a technical
+blocker: everything needed to publish it is in the two changes above.

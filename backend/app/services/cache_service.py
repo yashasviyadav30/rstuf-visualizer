@@ -47,10 +47,9 @@ class TTLCache:
     def age(self, key: str) -> float | None:
         """Seconds since ``key`` was stored, or ``None`` if it is not held.
 
-        Two callers want this. A refresh is worth honouring only when the
-        answer in hand is old enough for a new one to differ, and the page
-        reports when the repository was last read rather than when the
-        response was assembled.
+        A refresh is worth honouring only when the answer in hand is old
+        enough that a new one could differ, and this is how that is decided.
+        The page reports its own age from the reading itself, not from here.
         """
         entry = self._entries.get(key)
         if entry is None:

@@ -4,6 +4,10 @@
 
 replicaCount: 1
 
+# Where the image lives once this chart is published by the RSTUF
+# organisation. Nothing is published there yet, so an install before that
+# happens needs this pointed at wherever the image was actually built; the
+# chart's own CI overrides it for exactly that reason.
 image:
   repository: ghcr.io/repository-service-tuf/rstuf-visualizer
   pullPolicy: IfNotPresent
@@ -127,7 +131,7 @@ extraAnnotations: {}
 
 ingress:
   enabled: false
-  className: ""
+  # The controller to use. Rendered as the ingress's ingressClassName.
   ingressClassName: ""
   annotations: {}
     # kubernetes.io/ingress.class: nginx

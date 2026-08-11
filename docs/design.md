@@ -73,7 +73,7 @@ client, and both are checked before anything they contain reaches a screen:
 
 | File | Fetched by | Checked against |
 |---|---|---|
-| a delegated role, when someone opens it | `client/tuf_client.py` | its parent's delegation entry, through `verify_delegate` |
+| a delegated role, when someone opens it | `client/tuf_client.py` | its parent's delegation entry, through `get_verification_result` |
 | an older version of root, when reading history | `repositories/root_repository.py` | the version that superseded it, by the same call |
 
 Neither is fetched by the client because the client has no reason to: it
@@ -216,7 +216,9 @@ A role's contents load only when someone opens it. The parent checks the
 child, using public interfaces:
 
 ```python
-targets.signed.verify_delegate(name, child.signed_bytes, child.signatures)
+result = targets.signed.get_verification_result(
+    name, child.signed_bytes, child.signatures
+)
 result = targets.signed.get_verification_result(
     name, child.signed_bytes, child.signatures
 )
@@ -293,7 +295,7 @@ stable shape rather than on the metadata format.
 
 ```
 RoleSummary   name, version, expires, threshold, key_count, status
-KeySummary    id, name, scheme, location, held_offline
+KeySummary    keyid, keyid_short, name, scheme, online, signs
 TreeEdge      parent, child
 OverviewResponse
               state, roles[], edges[], message
@@ -420,7 +422,8 @@ This is how a signer confirms a rotation went as intended.
 Old versions are fetched by their spec-defined names, `1.root.json` onward,
 and checked before anything is shown: the specification's rotation rule says
 version N must be signed to threshold by the keys of version N−1 *and* by its
-own, and the library's `verify_delegate` applies exactly that check to each
+own, and the library's `get_verification_result` applies exactly that check
+to each
 step of the chain. An unverifiable version is shown as unverifiable, never as
 history.
 
@@ -483,8 +486,8 @@ Each row is a real mechanism, not an intention.
 | the network itself | the library's fetcher runs today; `FetcherInterface` is the seam a replacement passes through, and it touches one call |
 | where the trust anchor lives | three ordered sources |
 | where metadata lives | a setting, never a code path |
-| how responses are cached | callers see a two-method interface, so a shared store such as Redis can replace the in-process cache without touching them |
-| more than one repository | the metadata layer takes the repository as an argument rather than reading global state, so a second repository is added by configuration |
+| how responses are cached | callers reach the cache through three small methods, so a shared store such as Redis can replace the in-process one without touching them |
+| more than one repository | the metadata layer takes its settings as an argument rather than reading global state, and each repository already gets its own trust directory. What is missing is a way to name the second one: `Settings` holds one metadata URL and the service is built once per process, so this is a change to those two places rather than a rewrite |
 | the browser contract | versioned under `/api/v1/`, so a new shape ships beside the old one |
 | who signs a delegated role | read from the parent's own delegation entry, not inherited from a top-level role, so per-role signing keys are reported correctly |
 | authentication and permissions | every request already passes one backend door, so a login and a per-role permission check slot in front of the routes without changing the metadata layer |
@@ -752,8 +755,8 @@ compiled and a browser installed while the others need neither.
 Every test that cannot run says why and skips, so a green run never hides a
 gap. On Windows all 53 integration tests skip, because the library caches its
 trust anchor behind a symbolic link and Windows refuses that without Developer
-Mode. The browser tests skip on three conditions of their own: the generator,
-the symbolic link, a compiled interface, and an installed browser.
+Mode. The browser tests skip on four conditions: the generator, the symbolic
+link, a compiled interface, and an installed browser.
 `make test-docker` runs everything on Linux, which is both where the service
 runs and what CI checks.
 
