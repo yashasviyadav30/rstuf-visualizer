@@ -2,16 +2,45 @@
 # runs the tests, `make run-local` starts the service on this machine.
 # None of it is needed to build or ship the service; it only saves typing.
 
-.PHONY: all tests clean purge run-dev run-local stop build-dev reformat \
+.PHONY: all setup test test-unit test-integration test-docker lint tests \
+	clean purge run-dev run-local stop build-dev reformat \
 	precommit coverage fixtures chart-lint help
 
 all: help
+
+setup:  ## Install the backend's dependencies
+	pipenv install --dev --deploy
 
 reformat:  ## Reformat code with black and isort
 	black -l 79 .
 	isort -l79 --profile black .
 
-tests:  ## Run all tests
+test:  ## Run the tests
+	pipenv run pytest
+
+test-unit:  ## Run only the tests that reach nothing outside the process
+	pipenv run pytest tests/unit
+
+test-integration:  ## Run only the tests driven against a real repository
+	pipenv run pytest tests/integration
+
+# python-tuf caches its trust anchor behind a symbolic link, which Windows
+# refuses without Developer Mode, so the integration tests skip themselves
+# there. This runs the whole suite on Linux, where nothing skips, which is
+# also what CI does.
+test-docker:  ## Run every test on Linux, where nothing skips
+	docker run --rm -v "$(CURDIR)/..:/w" -w /w/backend python:3.13-slim \
+		bash -c "pip install --quiet --no-cache-dir pipenv \
+		&& pipenv install --dev --deploy --system --quiet \
+		&& pytest -q"
+
+lint:  ## Run the linters CI runs, in the order it runs them
+	flake8 app tests scripts
+	black -l79 --check --diff app tests scripts
+	isort -l79 --profile black --check --diff app tests scripts
+	bandit -q -r app
+
+tests:  ## Run the linters and tests in fresh environments, as CI does
 	tox -r
 
 precommit:  ## Install and run pre-commit hooks
