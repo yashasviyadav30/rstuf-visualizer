@@ -20,11 +20,22 @@ helm install visualizer charts/rstuf-visualizer \
 ## What it needs
 
 **An address serving the metadata.** `metadataUrl` is required and has no
-default. RSTUF writes metadata to storage, and object storage is not an
-address a TUF client can read, so a web server has to stand in front of it.
-RSTUF's docker-compose deployment already publishes its storage this way; the
-`rstuf-demo` chart writes to a LocalStack bucket with no public-read policy,
-so that deployment has nothing to point at yet.
+default, because where the files are published differs with every
+deployment and a guess would install cleanly while pointing at nothing.
+
+RSTUF's docker-compose deployment publishes its storage with a small web
+server on port 8080. In the `rstuf-demo` chart, the object store answers
+directly: the worker writes every metadata object with a `public-read` ACL by
+default, under the filenames a TUF client asks for, so point this at the
+bucket.
+
+```bash
+--set metadataUrl=http://rstuf-localstack.rstuf.svc.cluster.local:4566/tuf-metadata/
+```
+
+On real S3 the same holds, unless the account has Block Public Access turned
+on. That overrides the ACL, and then a web server or a signed-URL proxy has
+to stand in front of the bucket.
 
 **A trust anchor, ideally.** Every other file is checked against one root.
 Supply the root you already trust through `trustedRoot`. Left unset, the

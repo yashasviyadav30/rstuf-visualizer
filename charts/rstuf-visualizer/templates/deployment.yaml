@@ -72,6 +72,10 @@ spec:
                   name: {{ include "rstuf-visualizer.trustedRootSecret" . }}
                   key: {{ .Values.trustedRoot.key }}
             {{- end }}
+            {{- with .Values.corsOrigins }}
+            - name: RSTUF_CORS_ORIGINS
+              value: {{ join "," . | quote }}
+            {{- end }}
             - name: RSTUF_CACHE_TTL_SECONDS
               value: {{ .Values.cacheTtlSeconds | quote }}
             - name: RSTUF_REQUEST_TIMEOUT_SECONDS

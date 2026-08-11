@@ -95,11 +95,14 @@ helm install visualizer charts/rstuf-visualizer \
   --set-file trustedRoot.value=root.json.b64
 ```
 
-`metadataUrl` is required and has no default. RSTUF writes metadata to
-storage, and object storage is not an address a TUF client can read, so it
-must point at whatever serves those files over HTTP. Note that the
-`rstuf-demo` chart writes to a LocalStack S3 bucket with no public-read
-policy, so that deployment has nothing to point at yet.
+`metadataUrl` is required and has no default, because where the metadata is
+published differs with every deployment. RSTUF's worker writes each object
+with a `public-read` ACL by default, under the filenames a TUF client asks
+for, so in the `rstuf-demo` chart this points straight at the bucket:
+
+```bash
+--set metadataUrl=http://rstuf-localstack.rstuf.svc.cluster.local:4566/tuf-metadata/
+```
 
 Without `trustedRoot`, the anchor is taken from the RSTUF API instead. That
 is weaker, because it then arrives from the same deployment being checked.

@@ -16,12 +16,20 @@ fullnameOverride: ""
 
 # --- what this deployment reads ---------------------------------------------
 
-# Base URL of the signed TUF metadata. Required.
+# Base URL of the signed TUF metadata. Required, with no default: where the
+# metadata is published differs with every deployment, and a guess would let
+# this chart install cleanly while pointing at nothing.
 #
-# RSTUF writes metadata to storage, and object storage is not an address a TUF
-# client can read. Point this at the web server standing in front of it. In
-# the demo deployment, metadata goes to the S3 bucket in LocalStack and
-# nothing publishes it over HTTP, so that server has to be added.
+# The worker writes each object with a public-read ACL by default, under the
+# filenames a TUF client asks for, so an object store usually answers for
+# them directly. In the rstuf-demo deployment that is:
+#
+#   http://rstuf-localstack.rstuf.svc.cluster.local:4566/tuf-metadata/
+#
+# Where the bucket is not readable without credentials, on real S3 with Block
+# Public Access turned on for instance, point this at the web server or
+# proxy standing in front of it instead. RSTUF's docker-compose deployment
+# publishes its storage that way, on port 8080.
 metadataUrl: ""
 
 # Base URL of the RSTUF API. Optional.
@@ -42,6 +50,19 @@ trustedRoot:
   # Use a Secret you manage instead. Takes precedence over the value above.
   existingSecret: ""
   key: trusted-root
+
+# Origins allowed to call the API from a browser.
+#
+# Empty is right for this chart: the interface is served by the same process
+# as the API, so a browser asks one origin for both and needs no permission
+# to do it. This exists for a deployment that serves the interface from
+# somewhere else, and for a frontend development server, which answers on a
+# port of its own and is therefore another site.
+#
+# No credentials are ever allowed across origins. Every route is a GET and
+# none reads a cookie.
+corsOrigins: []
+# - https://visualizer.example.org
 
 # How long a verified view stays reusable before the repository is read again.
 cacheTtlSeconds: 30

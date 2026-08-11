@@ -587,19 +587,48 @@ be what takes the pod down.
 The client needs a URL, and a storage bucket alone is not one. Something must
 answer HTTP requests for the metadata files, wherever they live.
 
-RSTUF's own deployments split on this. The docker-compose deployment already
-publishes its storage over HTTP, with a small server on port 8080 in front of
-the worker's directory. The Helm demo does not: it writes to a LocalStack S3
-bucket created with `awslocal s3 mb` and no public-read policy, so nothing
-answers an anonymous GET for `timestamp.json`. Whoever installs this chart
-has to supply that address, which is why `metadataUrl` is required and has no
-default: a guess would let the chart install cleanly while pointing at
-nothing.
+RSTUF's own deployments answer this two different ways.
 
-The configuration must work whether the files sit in S3, in a volume, or
-behind an existing server, on cloud or on premise. Closing the gap in the
-demo chart is a separate question, and one for RSTUF rather than for this
-service.
+The docker-compose deployment publishes its storage over HTTP, with a small
+server on port 8080 in front of the worker's directory.
+
+The Helm demo has no such server, and an S3 bucket is not a URL. It turns out
+not to need one. RSTUF's worker writes every metadata object with a
+`public-read` ACL, and that is the default rather than something an operator
+opts into:
+
+```python
+self._s3_object_acl = s3_object_acl or "public-read"
+...
+self._s3_client.put_object(Body=data, Bucket=..., Key=filename, ACL=...)
+```
+
+Objects land at the root of the bucket under the names a TUF client asks for,
+`timestamp.json` and `{version}.{role}.json`, because that is what the client
+passes as the key. So the object store answers for them directly, and in the
+demo that address is:
+
+```
+http://rstuf-localstack.rstuf.svc.cluster.local:4566/tuf-metadata/
+```
+
+Checked rather than assumed: an object written with `--acl public-read` into
+a LocalStack bucket created by `awslocal s3 mb`, exactly as the demo creates
+it, is returned for an anonymous `GET` over plain HTTP with no credentials
+and no signature. A key that was never written returns 404, so the 200 is the
+object and not a catch-all.
+
+Two limits on that result. It was reproduced against LocalStack directly
+rather than inside the demo chart, so the address above is derived from the
+chart's service name and port rather than observed in a cluster. And on real
+S3 the same ACL is not enough on its own: an account with Block Public Access
+turned on overrides it, which is a deliberate choice an operator makes and
+not something this chart can decide for them.
+
+The setting must work whether the files sit in S3, in a volume, or behind an
+existing server, on cloud or on premise, which is why `metadataUrl` is
+required and has no default. A guess would let the chart install cleanly
+while pointing at nothing.
 
 `/healthz` answers for the orchestrator only. It reports that the process is
 running and says nothing about the repository, whose health appears on screen.
