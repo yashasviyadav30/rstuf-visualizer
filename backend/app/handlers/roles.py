@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Response
 
 from app.client.tuf_client import MetadataUnavailableError
 from app.dto.schemas import RoleDetailResponse
+from app.handlers import errors
 from app.handlers.validation import ROLE_NAME
 from app.services.metadata_service import (
     MetadataService,
@@ -21,7 +22,11 @@ from app.services.metadata_service import (
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
 
 
-@router.get("/roles/{role}", response_model=RoleDetailResponse)
+@router.get(
+    "/roles/{role}",
+    response_model=RoleDetailResponse,
+    responses=errors.ROLE,
+)
 async def role_detail(
     role: str = Path(pattern=ROLE_NAME, description="Role name"),
     service: MetadataService = Depends(get_metadata_service),
@@ -45,7 +50,11 @@ async def role_detail(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@router.get("/roles/{role}/raw", response_class=Response)
+@router.get(
+    "/roles/{role}/raw",
+    response_class=Response,
+    responses=errors.ROLE,
+)
 async def role_raw(
     role: str = Path(pattern=ROLE_NAME, description="Role name"),
     service: MetadataService = Depends(get_metadata_service),

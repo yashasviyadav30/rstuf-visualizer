@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.client.tuf_client import MetadataUnavailableError
 from app.dto.schemas import ArtifactBinsResponse, ArtifactsResponse
+from app.handlers import errors
 from app.handlers.validation import OPTIONAL_ROLE_NAME
 from app.services.metadata_service import (
     MetadataService,
@@ -20,7 +21,11 @@ from app.services.metadata_service import (
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
 
 
-@router.get("/artifacts/bins", response_model=ArtifactBinsResponse)
+@router.get(
+    "/artifacts/bins",
+    response_model=ArtifactBinsResponse,
+    responses=errors.REPOSITORY,
+)
 async def artifact_bins(
     service: MetadataService = Depends(get_metadata_service),
 ) -> ArtifactBinsResponse:
@@ -38,7 +43,11 @@ async def artifact_bins(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@router.get("/artifacts", response_model=ArtifactsResponse)
+@router.get(
+    "/artifacts",
+    response_model=ArtifactsResponse,
+    responses=errors.REPOSITORY,
+)
 async def artifacts(
     search: str = Query(default="", max_length=256),
     role: str = Query(

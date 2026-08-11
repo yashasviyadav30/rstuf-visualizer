@@ -47,6 +47,20 @@ class RepositoryState(str, Enum):
     AWAITING_SIGNATURES = "awaiting_signatures"
 
 
+class ErrorResponse(BaseModel):
+    """What every failure from this API carries.
+
+    The shape FastAPI sends for an HTTPException, named here so it appears in
+    the OpenAPI document rather than being left for a consumer to discover.
+    The message is written for a person to read.
+    """
+
+    detail: str = Field(
+        description="Why the request could not be answered",
+        examples=["This repository does not delegate to a role named bins-99"],
+    )
+
+
 class KeySummary(BaseModel):
     """One signing key, named rather than shown as a bare identifier."""
 

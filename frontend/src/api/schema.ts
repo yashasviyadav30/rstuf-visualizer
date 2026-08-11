@@ -280,6 +280,22 @@ export interface components {
             loaded: boolean;
         };
         /**
+         * ErrorResponse
+         * @description What every failure from this API carries.
+         *
+         *     The shape FastAPI sends for an HTTPException, named here so it appears in
+         *     the OpenAPI document rather than being left for a consumer to discover.
+         *     The message is written for a person to read.
+         */
+        ErrorResponse: {
+            /**
+             * Detail
+             * @description Why the request could not be answered
+             * @example This repository does not delegate to a role named bins-99
+             */
+            detail: string;
+        };
+        /**
          * ExpiryBand
          * @description How close a role is to expiring.
          *
@@ -691,6 +707,24 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            /** @description The repository could not be read. Its metadata server did not answer, so there is nothing to show */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
     };
     role_detail_api_v1_roles__role__get: {
@@ -714,6 +748,15 @@ export interface operations {
                     "application/json": components["schemas"]["RoleDetailResponse"];
                 };
             };
+            /** @description This repository does not delegate to a role by that name */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -721,6 +764,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description The repository could not be read. Its metadata server did not answer, so there is nothing to show */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -744,6 +805,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description This repository does not delegate to a role by that name */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -751,6 +821,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description The repository could not be read. Its metadata server did not answer, so there is nothing to show */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -785,6 +873,24 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            /** @description The repository could not be read. Its metadata server did not answer, so there is nothing to show */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
     };
     artifact_bins_api_v1_artifacts_bins_get: {
@@ -803,6 +909,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArtifactBinsResponse"];
+                };
+            };
+            /** @description The repository could not be read. Its metadata server did not answer, so there is nothing to show */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -838,6 +962,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description The repository could not be read. Its metadata server did not answer, so there is nothing to show */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

@@ -65,6 +65,26 @@
               }
             }
           },
+          "502": {
+            "description": "The repository could not be read. Its metadata server did not answer, so there is nothing to show",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -111,6 +131,36 @@
               }
             }
           },
+          "404": {
+            "description": "This repository does not delegate to a role by that name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The repository could not be read. Its metadata server did not answer, so there is nothing to show",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -149,6 +199,36 @@
         "responses": {
           "200": {
             "description": "Successful Response"
+          },
+          "404": {
+            "description": "This repository does not delegate to a role by that name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The repository could not be read. Its metadata server did not answer, so there is nothing to show",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -198,6 +278,26 @@
               }
             }
           },
+          "502": {
+            "description": "The repository could not be read. Its metadata server did not answer, so there is nothing to show",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -226,6 +326,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ArtifactBinsResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The repository could not be read. Its metadata server did not answer, so there is nothing to show",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -297,6 +417,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ArtifactsResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The repository could not be read. Its metadata server did not answer, so there is nothing to show",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Nothing can be checked. No trust anchor is available, and showing metadata that has not been verified would state a falsehood confidently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -485,6 +625,24 @@
         ],
         "title": "DelegatedSummary",
         "description": "A delegated role that has not been fetched.\n\nIts name comes from the delegation rule and its version from snapshot, so\nboth are known without downloading the file. Everything else waits until\nsomebody opens it."
+      },
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "Why the request could not be answered",
+            "examples": [
+              "This repository does not delegate to a role named bins-99"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse",
+        "description": "What every failure from this API carries.\n\nThe shape FastAPI sends for an HTTPException, named here so it appears in\nthe OpenAPI document rather than being left for a consumer to discover.\nThe message is written for a person to read."
       },
       "ExpiryBand": {
         "type": "string",

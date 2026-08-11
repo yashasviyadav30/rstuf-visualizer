@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.client.tuf_client import MetadataUnavailableError
 from app.dto.schemas import OverviewResponse
+from app.handlers import errors
 from app.services.metadata_service import (
     MetadataService,
     TrustAnchorMissingError,
@@ -19,7 +20,11 @@ from app.services.metadata_service import (
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
 
 
-@router.get("/overview", response_model=OverviewResponse)
+@router.get(
+    "/overview",
+    response_model=OverviewResponse,
+    responses=errors.REPOSITORY,
+)
 async def overview(
     refresh: bool = Query(
         default=False,

@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.client.tuf_client import MetadataUnavailableError
 from app.dto.schemas import RootsResponse
+from app.handlers import errors
 from app.repositories.root_repository import DEFAULT_HISTORY, MAX_HISTORY
 from app.services.metadata_service import (
     MetadataService,
@@ -20,7 +21,11 @@ from app.services.metadata_service import (
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
 
 
-@router.get("/roots", response_model=RootsResponse)
+@router.get(
+    "/roots",
+    response_model=RootsResponse,
+    responses=errors.REPOSITORY,
+)
 async def roots(
     limit: int = Query(
         default=DEFAULT_HISTORY,
