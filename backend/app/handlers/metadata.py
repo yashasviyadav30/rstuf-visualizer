@@ -1,0 +1,92 @@
+# SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+#
+# SPDX-License-Identifier: MIT
+
+"""The repository, its roles, and the bytes behind them."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
+
+from app.client.tuf_client import MetadataUnavailableError
+from app.dto.schemas import OverviewResponse, RoleDetailResponse
+from app.handlers.validation import ROLE_NAME
+from app.services.visualizer_service import (
+    TrustAnchorMissingError,
+    UnknownRoleError,
+    VisualizerService,
+    get_service,
+)
+
+router = APIRouter(prefix="/api/v1", tags=["metadata"])
+
+
+@router.get("/overview", response_model=OverviewResponse)
+async def overview(
+    refresh: bool = Query(
+        default=False,
+        description="Discard the cached result and check the repository now",
+    ),
+    service: VisualizerService = Depends(get_service),
+) -> OverviewResponse:
+    """Describe the repository: its roles, their state, and the tree."""
+    try:
+        return await service.overview(refresh=refresh)
+    except TrustAnchorMissingError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except MetadataUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/roles/{role}", response_model=RoleDetailResponse)
+async def role_detail(
+    role: str = Path(pattern=ROLE_NAME, description="Role name"),
+    service: VisualizerService = Depends(get_service),
+) -> RoleDetailResponse:
+    """Open one role.
+
+    Top-level roles were verified during the refresh. A delegated role is
+    fetched now and checked by its parent, which is what makes opening one
+    cost a single request instead of every bin costing one up front.
+    """
+    try:
+        return await service.role(role)
+    except (UnknownRoleError, StopIteration) as exc:
+        detail = str(exc) or role
+        if detail == role:
+            detail = f"No such role: {role}"
+        raise HTTPException(status_code=404, detail=detail) from exc
+    except TrustAnchorMissingError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except MetadataUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/roles/{role}/raw", response_class=Response)
+async def role_raw(
+    role: str = Path(pattern=ROLE_NAME, description="Role name"),
+    service: VisualizerService = Depends(get_service),
+) -> Response:
+    """Serve the bytes one role was verified from.
+
+    Sent as a download rather than rendered, and never as HTML, so a
+    repository cannot put script into a file this service hands to a browser.
+    """
+    try:
+        document = await service.raw_metadata(role)
+    except (UnknownRoleError, StopIteration) as exc:
+        detail = str(exc) or f"No such role: {role}"
+        raise HTTPException(status_code=404, detail=detail) from exc
+    except TrustAnchorMissingError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except MetadataUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return Response(
+        content=document,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{role}.json"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

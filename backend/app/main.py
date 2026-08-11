@@ -19,8 +19,9 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import router
 from app.config import cors_origins
+from app.handlers import artifacts, health, metadata, roots, status
+from app.middleware.logging import RequestLogMiddleware
 
 # The image keeps the layout of the source tree, so the interface sits beside
 # the backend in both.
@@ -40,7 +41,15 @@ def create_app() -> FastAPI:
         version="0.1.0",
     )
 
-    application.include_router(router)
+    application.add_middleware(RequestLogMiddleware)
+
+    # Health first, because a probe must be answerable whatever else is
+    # wrong. The rest are grouped by subject and all sit under /api/v1.
+    application.include_router(health.router)
+    application.include_router(metadata.router)
+    application.include_router(roots.router)
+    application.include_router(artifacts.router)
+    application.include_router(status.router)
 
     # Named origins only, and only where a deployment asks for them. Nothing
     # here is needed by the shipped arrangement, where the interface is served
