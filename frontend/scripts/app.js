@@ -21,6 +21,7 @@
     artifactPage: 1,
     statusLoaded: false,
     rootsLoaded: false,
+    checkedAt: null,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -36,14 +37,6 @@
           "'": '&#39;',
         })[c]
     );
-
-  const BAND_RANK = { expired: 0, critical: 1, expiring: 2, valid: 3 };
-  const BAND_LABEL = {
-    expired: 'Expired',
-    critical: 'Expires within a day',
-    expiring: 'Expiring soon',
-    valid: 'All healthy',
-  };
 
   function size(bytes) {
     if (bytes < 1024) return `${bytes} B`;
@@ -65,27 +58,78 @@
 
   /* ---------------- header ---------------- */
 
+  function plural(count, word) {
+    return `${count} ${word}${count === 1 ? '' : 's'}`;
+  }
+
+  /* How old the answer on screen is, in words.
+   *
+   * A clock time answers a question nobody asked. What sends someone to the
+   * refresh button is not knowing whether they are looking at something
+   * current, and "checked 4 seconds ago" settles that without a click.
+   */
+  function ago(iso) {
+    const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+    if (seconds < 45) return plural(Math.round(seconds), 'second');
+    const minutes = seconds / 60;
+    if (minutes < 45) return plural(Math.round(minutes), 'minute');
+    return plural(Math.round(minutes / 60), 'hour');
+  }
+
+  function renderCheckedAt() {
+    const element = $('checked-at');
+    element.textContent = state.checkedAt
+      ? `checked ${ago(state.checkedAt)}`
+      : '';
+  }
+
+  /* The header carries one verdict, so it has to mean something.
+   *
+   * It used to show the worst expiry band found on any role, which left it
+   * amber for ever: RSTUF gives timestamp a one-day life and renews it on a
+   * schedule, so a perfectly healthy repository always holds a role inside a
+   * day of expiring. A warning that is always on is not a warning.
+   *
+   * The narrower question it answers now is whether anything is actually
+   * wrong. Something expired, or a signature that did not check out, is
+   * wrong. Root running down is the one countdown that earns a place beside
+   * them, because root is the role no worker can renew: it is signed
+   * offline, by people, and nothing will rescue it automatically.
+   *
+   * Every other band stays in the table, where a one-day expiry reads as the
+   * ordinary information it is rather than as an alarm.
+   */
   function renderHealth(overview) {
     const badge = $('health-badge');
     const label = $('health-label');
+    const roles = overview.roles || [];
+    const root = roles.find((role) => role.name === 'root');
+
+    let band = 'valid';
+    let text = 'All healthy';
 
     if (overview.status === 'invalid') {
-      badge.className = 'badge badge--invalid';
-      label.textContent = 'Verification failed';
-    } else {
-      const worst = (overview.roles || []).reduce(
-        (acc, role) =>
-          BAND_RANK[role.band] < BAND_RANK[acc] ? role.band : acc,
-        'valid'
-      );
-      badge.className = `badge badge--${worst}`;
-      label.textContent = BAND_LABEL[worst] || 'Unknown';
+      band = 'invalid';
+      text = 'Verification failed';
+    } else if (
+      overview.status === 'expired' ||
+      roles.some((role) => role.band === 'expired')
+    ) {
+      band = 'expired';
+      text = 'Expired';
+    } else if (
+      root &&
+      (root.band === 'critical' || root.band === 'expiring')
+    ) {
+      band = 'critical';
+      text = `Root ${root.expires_in}`;
     }
 
-    if (overview.checked_at) {
-      const when = new Date(overview.checked_at);
-      $('checked-at').textContent = `checked ${when.toLocaleTimeString()}`;
-    }
+    badge.className = `badge badge--${band}`;
+    label.textContent = text;
+
+    state.checkedAt = overview.checked_at || null;
+    renderCheckedAt();
   }
 
   function renderBanner(overview) {
@@ -866,5 +910,9 @@
     wireRefresh();
     wireArtifacts();
     loadOverview(false);
+
+    // The age of the answer is only honest if it keeps counting. Nothing is
+    // fetched here; the label is redrawn from the reading already in hand.
+    setInterval(renderCheckedAt, 10000);
   });
 })();
