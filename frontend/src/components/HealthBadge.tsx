@@ -30,7 +30,9 @@ export function HealthBadge({ overview, loading, onRefresh }: Props) {
       </span>
       <div className="topbar__right">
         <span className="checked">
-          {overview?.checked_at ? `checked ${ago(overview.checked_at)}` : ''}
+          {overview?.checked_at
+            ? `checked ${ago(overview.checked_at)} ago`
+            : ''}
         </span>
         <button
           className={`btn${loading ? ' is-busy' : ''}`}

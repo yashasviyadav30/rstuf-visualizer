@@ -70,9 +70,14 @@ class TestAHealthyRepository(BrowserTestCase):
     def test_says_how_old_the_reading_is(
         self, page: Page, visualizer_url
     ) -> None:
+        """In words, and as a whole sentence.
+
+        "checked 0 seconds" is not what anybody says. The point of the label
+        is to answer, without a click, whether the screen is current.
+        """
         page.goto(visualizer_url("good"))
 
-        expect(page.get_by_text("checked", exact=False)).to_be_visible()
+        expect(page.get_by_text("seconds ago", exact=False)).to_be_visible()
 
 
 class TestArtifacts(BrowserTestCase):

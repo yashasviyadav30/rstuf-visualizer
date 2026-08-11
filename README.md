@@ -12,6 +12,36 @@ Read-only by design: it verifies and displays a repository, and changes
 nothing in it. Altering a repository is the RSTUF API's job, reached with the
 operator's own credentials.
 
+![The roles table, the delegation tree, and one role opened](docs/images/overview.png)
+
+Every role with its signers, threshold, version and expiry, the delegation
+tree drawn from the metadata itself, and whichever role you open beside them.
+
+<details>
+<summary>Root history, artifacts, and status</summary>
+
+![Root history, rotation by rotation](docs/images/root-history.png)
+
+How root reached the version in force, with each rotation checked against the
+one before it. Here version 2 added a second root key and raised the threshold
+from one to two, and version 3 replaced the online key.
+
+![Artifacts, a bin at a time](docs/images/artifacts.png)
+
+The artifacts a repository vouches for, opened one bin at a time. A repository
+may delegate to two hundred and fifty-six of them, so the screen starts as a
+list of counts and reads nothing until a bin is opened.
+
+![Repository status](docs/images/status.png)
+
+What the RSTUF API reports, when one is configured, and plainly that it is not
+when none is.
+
+</details>
+
+These are taken by `make screenshots`, which drives a real browser against a
+generated repository, so they cannot drift from what the interface draws.
+
 ## Requirements
 
 - Python 3.13 or newer

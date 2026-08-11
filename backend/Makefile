@@ -2,7 +2,7 @@
 # runs the tests, `make run-local` starts the service on this machine.
 # None of it is needed to build or ship the service; it only saves typing.
 
-.PHONY: all setup test test-unit test-integration test-e2e test-docker \
+.PHONY: all setup test test-unit test-integration test-e2e test-docker \n	screenshots \
 	lint tests \
 	clean purge run-dev run-local stop build-dev reformat \
 	precommit coverage fixtures chart-lint help
@@ -44,6 +44,12 @@ test-docker:  ## Run every test on Linux, where nothing skips
 		bash -c "pip install --quiet --no-cache-dir pipenv \
 		&& pipenv install --dev --deploy --system --quiet \
 		&& pytest -q"
+
+# Taken rather than drawn, so the pictures in the documents cannot drift
+# from what the interface actually renders.
+screenshots:  ## Photograph each screen for the documents
+	pipenv run playwright install chromium
+	PYTHONPATH=. pipenv run python scripts/screenshots.py
 
 lint:  ## Run the linters CI runs, in the order it runs them
 	flake8 app tests scripts
