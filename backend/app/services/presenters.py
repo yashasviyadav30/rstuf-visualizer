@@ -269,6 +269,7 @@ def build_role_detail(
         band=band,
         status=role.status,
         threshold=role.threshold,
+        signatures_present=_valid_signatures(view, name),
         signed_by=[
             keys[keyid] for keyid in _keyids_for(view, name) if keyid in keys
         ],
@@ -276,6 +277,33 @@ def build_role_detail(
         artifacts=artifacts,
         raw_url=raw_url(name),
     )
+
+
+def _valid_signatures(view: RepositoryView, name: str) -> int | None:
+    """Count the signatures on a top-level role that root accepts.
+
+    Counted rather than assumed. The client verified this role during the
+    refresh, so the number necessarily meets the threshold, but a screen that
+    reports "2 of 2" should have counted the two: an operator reading a
+    signature count is asking a question about evidence, and the honest answer
+    to "how many" is never "enough".
+
+    ``None`` where the count cannot be taken, which the interface reports as
+    unknown rather than as zero.
+    """
+    root = view.documents.get("root")
+    document = view.documents.get(name)
+    if root is None or document is None:
+        return None
+
+    try:
+        result = root.signed.get_verification_result(
+            name, document.signed_bytes, document.signatures
+        )
+    except Exception:  # noqa: BLE001 - an unknown role has nothing to count
+        return None
+
+    return len(result.signed)
 
 
 def _key_name(key: object, keyid: str) -> str:

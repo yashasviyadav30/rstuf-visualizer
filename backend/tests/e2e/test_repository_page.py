@@ -104,6 +104,83 @@ class TestArtifacts(BrowserTestCase):
         assert rows.count() > 0
 
 
+class TestRootHistory(BrowserTestCase):
+    """The screen a signer uses to confirm a rotation went as intended."""
+
+    def test_accuses_nothing_in_a_repository_that_verifies(
+        self, page: Page, visualizer_url
+    ) -> None:
+        """No version of a sound root may be reported as unsigned.
+
+        The checks arrive as objects carrying a count, not as flags. Read as
+        flags they are always truthy, which reads as "signed" for a check that
+        failed and, for the oldest version reached, as a failure where there
+        was simply nothing above it to check against. On the one screen whose
+        purpose is auditing rotations, that clears a broken root and accuses a
+        sound one.
+        """
+        page.goto(visualizer_url("good"))
+        page.get_by_role("button", name="Root history").click()
+
+        expect(page.get_by_text("How root reached version 3")).to_be_visible()
+        expect(page.get_by_text("NOT signed by")).to_have_count(0)
+
+    def test_shows_the_numbers_behind_each_check(
+        self, page: Page, visualizer_url
+    ) -> None:
+        """A verdict without its count is not evidence.
+
+        This repository rotated from a root holding one key to one holding
+        two, which is the change the screen exists to make visible: version 1
+        signs with one key, versions 2 and 3 with two.
+        """
+        page.goto(visualizer_url("good"))
+        page.get_by_role("button", name="Root history").click()
+
+        expect(
+            page.get_by_text("signed by its own keys (1 of 1)")
+        ).to_have_count(1)
+        expect(
+            page.get_by_text("signed by its own keys (2 of 2)")
+        ).to_have_count(2)
+
+    def test_says_when_there_was_no_earlier_version_to_check(
+        self, page: Page, visualizer_url
+    ) -> None:
+        page.goto(visualizer_url("good"))
+        page.get_by_role("button", name="Root history").click()
+
+        expect(page.get_by_text("no earlier version was read")).to_be_visible()
+
+
+class TestStatus(BrowserTestCase):
+    def test_says_plainly_when_no_api_is_configured(
+        self, page: Page, visualizer_url
+    ) -> None:
+        """The repository is read and verified without it, because none of
+        the trust picture comes from there."""
+        page.goto(visualizer_url("good"))
+        page.get_by_role("button", name="Status").click()
+
+        expect(
+            page.get_by_text("No RSTUF API is configured", exact=False)
+        ).to_be_visible()
+
+
+class TestRoleDetail(BrowserTestCase):
+    def test_counts_the_signatures_on_a_top_level_role(
+        self, page: Page, visualizer_url
+    ) -> None:
+        """An operator reading a signature count is asking about evidence,
+        and the honest answer to "how many" is never "enough"."""
+        page.goto(visualizer_url("good"))
+        page.get_by_role("button", name="root", exact=True).click()
+
+        expect(
+            page.locator(".detail").get_by_text("2 of 2 required")
+        ).to_be_visible()
+
+
 class TestABrokenRepository(BrowserTestCase):
     """Showing broken trust is the point, so it must reach the screen."""
 

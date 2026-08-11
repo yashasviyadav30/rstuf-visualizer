@@ -1,4 +1,7 @@
-import type { RootVersionSummary } from '../../../api/types';
+import type {
+  RootVersionSummary,
+  SignatureCheckSummary,
+} from '../../../api/types';
 import { ErrorBanner } from '../../../components/Banner';
 import { useRoots } from '../hooks/useRoots';
 
@@ -38,6 +41,29 @@ export function RootHistoryPage({ active }: { active: boolean }) {
   );
 }
 
+/**
+ * One threshold check, reported with the numbers behind it.
+ *
+ * The check is an object, not a flag, and reading it as one would say "signed"
+ * for a check that failed. On the screen that exists to audit rotations, that
+ * is the difference between clearing a broken root and accusing a sound one,
+ * so the count is shown rather than a verdict alone.
+ */
+function SignatureCheck({
+  check,
+  by,
+}: {
+  check: SignatureCheckSummary;
+  by: string;
+}) {
+  return (
+    <span className={check.verified ? undefined : 'state state--invalid'}>
+      {check.verified ? 'signed by' : 'NOT signed by'} {by} ({check.present} of{' '}
+      {check.threshold})
+    </span>
+  );
+}
+
 function RootVersion({ version }: { version: RootVersionSummary }) {
   return (
     <li className={version.verified ? 'root' : 'root root--unverified'}>
@@ -54,12 +80,20 @@ function RootVersion({ version }: { version: RootVersionSummary }) {
       </h3>
 
       <p className="muted">
-        {version.key_count} key{version.key_count === 1 ? '' : 's'} ·{' '}
-        {version.by_previous_keys
-          ? 'signed by the keys before it'
-          : 'NOT signed by the keys before it'}{' '}
-        ·{' '}
-        {version.by_own_keys ? 'signed by its own' : 'NOT signed by its own'}
+        {version.key_count} key{version.key_count === 1 ? '' : 's'}
+        {' · '}
+        <SignatureCheck check={version.by_own_keys} by="its own keys" />
+        {' · '}
+        {version.by_previous_keys ? (
+          <SignatureCheck
+            check={version.by_previous_keys}
+            by="the keys before it"
+          />
+        ) : (
+          // The oldest version reached has nothing above it to be checked
+          // against, which is not the same as failing that check.
+          <span>no earlier version was read</span>
+        )}
       </p>
 
       {version.note && <p className="state state--invalid">{version.note}</p>}

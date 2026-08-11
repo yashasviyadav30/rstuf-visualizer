@@ -41,8 +41,11 @@ export function RoleDetail({ detail, loading, error, selected }: Props) {
         <dt>Status</dt>
         <dd className={`state state--${detail.status}`}>{detail.status}</dd>
         <dt>Signatures</dt>
+        {/* Both halves can be absent, and an empty number beside a real one
+            reads as zero rather than as unknown. */}
         <dd>
-          {detail.signatures_present} of {detail.threshold ?? '?'} required
+          {detail.signatures_present ?? '?'} of {detail.threshold ?? '?'}{' '}
+          required
         </dd>
       </dl>
 

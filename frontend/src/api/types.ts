@@ -25,6 +25,7 @@ export type ArtifactBinsResponse = Schemas['ArtifactBinsResponse'];
 export type StatusResponse = Schemas['StatusResponse'];
 export type RootsResponse = Schemas['RootsResponse'];
 export type RootVersionSummary = Schemas['RootVersionSummary'];
+export type SignatureCheckSummary = Schemas['SignatureCheckSummary'];
 
 export type ExpiryBand = Schemas['ExpiryBand'];
 export type RoleStatus = Schemas['RoleStatus'];
