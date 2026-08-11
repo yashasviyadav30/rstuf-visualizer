@@ -10,7 +10,7 @@ import asyncio
 
 import pytest
 
-from app.cache import TTLCache
+from app.services.cache_service import TTLCache
 
 
 @pytest.mark.asyncio

@@ -24,7 +24,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import app
-from app.service import VisualizerService, get_service
+from app.services.visualizer_service import VisualizerService, get_service
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_ROOT = BACKEND_ROOT / "fixtures"

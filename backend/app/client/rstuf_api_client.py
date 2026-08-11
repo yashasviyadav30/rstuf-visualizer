@@ -24,7 +24,7 @@ from typing import Any
 
 import httpx
 
-from app.models.schemas import RepositoryState
+from app.dto.schemas import RepositoryState
 
 logger = logging.getLogger(__name__)
 

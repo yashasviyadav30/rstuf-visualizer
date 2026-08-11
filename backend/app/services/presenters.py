@@ -17,7 +17,8 @@ from urllib.parse import quote
 
 from tuf.api.metadata import Metadata
 
-from app.models.schemas import (
+from app.client.tuf_client import DelegatedView, RepositoryView
+from app.dto.schemas import (
     ArtifactSummary,
     DelegatedSummary,
     ExpiryBand,
@@ -35,8 +36,11 @@ from app.models.schemas import (
     SignatureCheckSummary,
     TreeEdge,
 )
-from app.tuf.roots import RootHistory, RootRevision, SignatureCheck
-from app.tuf.trust import DelegatedView, RepositoryView
+from app.repositories.root_repository import (
+    RootHistory,
+    RootRevision,
+    SignatureCheck,
+)
 
 RSTUF_KEY_NAME = "x-rstuf-key-name"
 RSTUF_ONLINE_KEY_URI = "x-rstuf-online-key-uri"

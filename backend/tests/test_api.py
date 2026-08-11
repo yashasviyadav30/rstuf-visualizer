@@ -11,11 +11,11 @@ import time
 
 from fastapi.testclient import TestClient
 
-from app import service as service_module
+from app.client.tuf_client import MetadataUnavailableError
 from app.config import Settings
 from app.main import app
-from app.service import VisualizerService, get_service
-from app.tuf.trust import MetadataUnavailableError
+from app.services import visualizer_service as service_module
+from app.services.visualizer_service import VisualizerService, get_service
 from tests.conftest import (
     FIXTURE_ROOT,
     requires_fixtures,

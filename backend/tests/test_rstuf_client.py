@@ -9,7 +9,7 @@ from __future__ import annotations
 import base64
 import json
 
-from app.rstuf.client import _root_bytes
+from app.client.rstuf_api_client import _root_bytes
 
 ROOT = {"signatures": [{"keyid": "abc", "sig": "def"}], "signed": {}}
 

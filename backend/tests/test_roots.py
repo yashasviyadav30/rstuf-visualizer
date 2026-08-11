@@ -20,8 +20,8 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import app
-from app.service import VisualizerService, get_service
-from app.tuf.roots import MAX_HISTORY
+from app.repositories.root_repository import MAX_HISTORY
+from app.services.visualizer_service import VisualizerService, get_service
 from tests.conftest import FIXTURE_ROOT, requires_fixtures, requires_symlinks
 
 

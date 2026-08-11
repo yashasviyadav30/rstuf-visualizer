@@ -11,12 +11,12 @@ from pathlib import Path
 
 import pytest
 
-from app.models.schemas import RoleStatus
-from app.tuf.trust import (
+from app.client.tuf_client import (
     MetadataUnavailableError,
     load_repository,
     resolve_trusted_root,
 )
+from app.dto.schemas import RoleStatus
 from tests.conftest import requires_fixtures, requires_symlinks
 
 

@@ -27,7 +27,7 @@ from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.api.metadata import Metadata
 from tuf.ngclient import Updater
 
-from app.models.schemas import RoleStatus
+from app.dto.schemas import RoleStatus
 
 logger = logging.getLogger(__name__)
 

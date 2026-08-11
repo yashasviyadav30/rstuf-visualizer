@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from app.models.schemas import ExpiryBand
-from app.tuf.read import expiry_band
+from app.dto.schemas import ExpiryBand
+from app.services.presenters import expiry_band
 
 NOW = datetime(2026, 8, 4, 12, 0, tzinfo=timezone.utc)
 

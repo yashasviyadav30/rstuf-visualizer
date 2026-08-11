@@ -28,7 +28,7 @@ import httpx
 from tuf.api.exceptions import RepositoryError
 from tuf.api.metadata import Metadata, Root
 
-from app.tuf.trust import MetadataUnavailableError
+from app.client.tuf_client import MetadataUnavailableError
 
 logger = logging.getLogger(__name__)
 

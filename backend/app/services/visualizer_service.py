@@ -19,9 +19,18 @@ from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 
-from app.cache import TTLCache
+from app.client.rstuf_api_client import RstufClient
+from app.client.tuf_client import (
+    DelegatedView,
+    MetadataUnavailableError,
+    RepositoryView,
+    UnknownRoleError,
+    load_delegated_role,
+    load_repository,
+    resolve_trusted_root,
+)
 from app.config import Settings, get_settings
-from app.models.schemas import (
+from app.dto.schemas import (
     ArtifactBinsResponse,
     ArtifactsResponse,
     ArtifactSummary,
@@ -32,18 +41,13 @@ from app.models.schemas import (
     RootsResponse,
     StatusResponse,
 )
-from app.rstuf.client import RstufClient
-from app.tuf import read
-from app.tuf.roots import DEFAULT_HISTORY, RootHistory, load_root_history
-from app.tuf.trust import (
-    DelegatedView,
-    MetadataUnavailableError,
-    RepositoryView,
-    UnknownRoleError,
-    load_delegated_role,
-    load_repository,
-    resolve_trusted_root,
+from app.repositories.root_repository import (
+    DEFAULT_HISTORY,
+    RootHistory,
+    load_root_history,
 )
+from app.services import presenters
+from app.services.cache_service import TTLCache
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +194,7 @@ class VisualizerService:
             )
 
         view = await self.view(refresh=refresh)
-        return read.build_overview(view, state)
+        return presenters.build_overview(view, state)
 
     @staticmethod
     def _is_top_level(view: RepositoryView, name: str) -> bool:
@@ -221,10 +225,10 @@ class VisualizerService:
         view = await self.view()
 
         if self._is_top_level(view, name):
-            return read.build_role_detail(view, name)
+            return presenters.build_role_detail(view, name)
 
         loaded = await self._delegated(view, name)
-        return read.build_delegated_detail(view, loaded)
+        return presenters.build_delegated_detail(view, loaded)
 
     async def raw_metadata(self, name: str) -> bytes:
         """Return the bytes one role was verified from.
@@ -270,7 +274,7 @@ class VisualizerService:
         history = await self._cache.get_or_build(
             f"roots:{trusted.signed.version}:{limit}", build
         )
-        return read.build_root_history(history)
+        return presenters.build_root_history(history)
 
     async def _gather_artifacts(
         self, view: RepositoryView
@@ -427,9 +431,8 @@ class VisualizerService:
         if reported.available:
             try:
                 view = await self.view()
-                keys = list(
-                    read.key_summaries(view.documents.get("root")).values()
-                )
+                root = view.documents.get("root")
+                keys = list(presenters.key_summaries(root).values())
             except (MetadataUnavailableError, TrustAnchorMissingError):
                 keys = []
 
