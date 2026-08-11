@@ -14,6 +14,16 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# Containers that must finish before this one starts. The service survives an
+# unreachable repository by design, reporting it on screen rather than
+# failing, so nothing here is required. It is useful in a deployment that
+# brings its storage up alongside this, where waiting saves a first page load
+# that has nothing to show.
+initContainers: []
+# - name: wait-for-storage
+#   image: busybox:1.37
+#   command: ['sh', '-c', 'until nc -z storage 4566; do sleep 2; done;']
+
 # --- what this deployment reads ---------------------------------------------
 
 # Base URL of the signed TUF metadata. Required, with no default: where the
