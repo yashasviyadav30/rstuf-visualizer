@@ -210,7 +210,7 @@ def build_overview(
     return OverviewResponse(
         state=state,
         status=status,
-        checked_at=now.isoformat(),
+        checked_at=view.checked_at.isoformat(),
         roles=sorted(roles, key=lambda item: _role_order(item.name)),
         delegated=delegated,
         edges=edges,

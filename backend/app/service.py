@@ -15,7 +15,6 @@ import asyncio
 import logging
 import tempfile
 from collections import Counter
-from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
@@ -182,17 +181,6 @@ class VisualizerService:
                 self._cache.clear()
         return await self._cache.get_or_build(OVERVIEW_KEY, self._load)
 
-    def _checked_at(self) -> datetime:
-        """When the repository was last read, not when this reply was built.
-
-        The page reports the age of its answer, so it has to come from the
-        cache rather than the clock, or a cached response would claim to have
-        been checked the moment it was served.
-        """
-        now = datetime.now(timezone.utc)
-        age = self._cache.age(OVERVIEW_KEY)
-        return now if age is None else now - timedelta(seconds=age)
-
     async def overview(self, refresh: bool = False) -> OverviewResponse:
         """Describe the repository for the first render."""
         state = await self._repository_state()
@@ -202,9 +190,7 @@ class VisualizerService:
             )
 
         view = await self.view(refresh=refresh)
-        overview = read.build_overview(view, state)
-        overview.checked_at = self._checked_at().isoformat()
-        return overview
+        return read.build_overview(view, state)
 
     @staticmethod
     def _is_top_level(view: RepositoryView, name: str) -> bool:

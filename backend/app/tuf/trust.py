@@ -88,6 +88,17 @@ class RepositoryView:
     verification_error: str | None = None
     documents: dict[str, Metadata] = field(default_factory=dict)
     delegated: dict[str, int | None] = field(default_factory=dict)
+    checked_at: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    """When this reading was taken.
+
+    Recorded on the reading itself rather than worked out afterwards. A view
+    is served from the cache long after it was built, so the page has to
+    report when the repository was read; deriving that from how much time has
+    passed samples two different clocks and lands a few microseconds apart on
+    every call.
+    """
 
     @property
     def is_trustworthy(self) -> bool:
