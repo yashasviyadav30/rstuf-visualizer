@@ -25,7 +25,7 @@ from urllib.parse import quote
 import httpx
 from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.api.metadata import Metadata
-from tuf.ngclient import Updater
+from tuf.ngclient import Updater, UpdaterConfig
 
 from app.dto.schemas import RoleStatus
 
@@ -225,6 +225,32 @@ def _read_trust_directory(
     return views, documents
 
 
+# What the client will accept from a storage server we do not control.
+#
+# The length caps bound how much is read before giving up, so a server
+# cannot answer a request for timestamp.json with an endless stream. The
+# numbers are generous for real metadata: a repository with two hundred and
+# fifty-six bins has a snapshot listing all of them, and it is nowhere near
+# two megabytes.
+#
+# max_root_rotations is what makes pinning a root safe to do once and leave
+# alone. The client walks forward from whatever version it was handed,
+# checking each rotation against the one before it, and this is how far it
+# will walk before deciding something is wrong.
+#
+# app_user_agent lets an operator recognise us in their access logs, which
+# matters when the storage server belongs to someone else.
+UPDATER_CONFIG = UpdaterConfig(
+    max_root_rotations=256,
+    max_delegations=32,
+    root_max_length=512_000,
+    timestamp_max_length=16_384,
+    snapshot_max_length=2_000_000,
+    targets_max_length=5_000_000,
+    app_user_agent="rstuf-visualizer/0.1.0",
+)
+
+
 def _refresh(
     trust_dir: Path, metadata_url: str, bootstrap: bytes | None
 ) -> None:
@@ -236,6 +262,7 @@ def _refresh(
         metadata_dir=str(trust_dir),
         metadata_base_url=metadata_url,
         bootstrap=bootstrap,
+        config=UPDATER_CONFIG,
     )
     updater.refresh()
 
