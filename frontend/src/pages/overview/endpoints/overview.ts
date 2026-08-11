@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import { request } from '../../../api/client';
 import type { OverviewResponse, RoleDetailResponse } from '../../../api/types';
 

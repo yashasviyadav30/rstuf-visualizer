@@ -1,10 +1,14 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import { useEffect, useState } from 'react';
 
 import type { OverviewResponse } from '../api/types';
 import { ago, verdictFor } from './health';
 
 interface Props {
-  overview: OverviewResponse | null;
+  overview: OverviewResponse | undefined;
   loading: boolean;
   onRefresh: () => void;
 }

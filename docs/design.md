@@ -536,6 +536,18 @@ own OpenAPI document rather than written by hand, so a field renamed on the
 server becomes a compile error in the component that reads it instead of
 `undefined` on a screen. `make openapi` refreshes them.
 
+Requests go through TanStack Query rather than a hook written here. The hook
+written here worked, and the linter's rules of hooks found three real faults
+in it: a ref written during a render, and two effects writing state
+synchronously. Those are the faults a query library exists to remove, and
+removing sixty lines of them is worth one dependency.
+
+Nothing is treated as going stale on its own. The backend already reuses a
+verified reading for a short window and declines a refresh that cannot tell
+it anything new, so a second cache in front of it with its own opinions would
+only disagree with the first. Answers are held until something asks again,
+and the refresh button is what asks.
+
 The image is built in stages, matching the pattern used by RSTUF's own
 services: dependencies resolved in a builder stage, then only the installed
 packages and the application copied into a slim final image.

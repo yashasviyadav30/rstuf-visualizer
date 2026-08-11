@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import type { DelegatedSummary, RoleSummary } from '../../../api/types';
 
 /**

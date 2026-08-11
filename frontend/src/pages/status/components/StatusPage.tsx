@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import { useStatus } from '../hooks/useStatus';
 
 /**
@@ -9,9 +13,10 @@ import { useStatus } from '../hooks/useStatus';
  * metadata alone.
  */
 export function StatusPage({ active }: { active: boolean }) {
-  const { data, loading, error } = useStatus(active);
+  const { data, isFetching, error } = useStatus(active);
 
-  if (loading || (!data && !error)) return <p className="muted">Asking…</p>;
+  if (isFetching || (!data && !error))
+    return <p className="muted">Asking…</p>;
 
   if (error || !data?.available) {
     return (

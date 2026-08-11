@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import type { BinSummary } from '../../../api/types';
 
 interface Props {

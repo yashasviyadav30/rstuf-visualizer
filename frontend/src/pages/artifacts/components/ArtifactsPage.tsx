@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import { useState } from 'react';
 
 import { Banner, ErrorBanner } from '../../../components/Banner';
@@ -87,7 +91,7 @@ export function ArtifactsPage({ active }: { active: boolean }) {
           <BinList
             bins={bins.data?.bins ?? []}
             total={bins.data?.total ?? 0}
-            loading={bins.loading}
+            loading={bins.isFetching}
             selected={search ? null : selected}
             onSelect={(name) => {
               setTyped('');

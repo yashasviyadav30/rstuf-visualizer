@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import { useState } from 'react';
 
 import type { OverviewResponse } from '../../../api/types';
@@ -8,7 +12,7 @@ import { RoleDetail } from './RoleDetail';
 import { RolesTable } from './RolesTable';
 
 interface Props {
-  overview: OverviewResponse | null;
+  overview: OverviewResponse | undefined;
   loading: boolean;
   error: Error | null;
 }

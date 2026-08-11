@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import { describe, expect, it } from 'vitest';
 
 import type { OverviewResponse, RoleSummary } from '../api/types';

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 import type {
   RootVersionSummary,
   SignatureCheckSummary,
@@ -15,10 +19,11 @@ import { useRoots } from '../hooks/useRoots';
  * unnoticed by every normal client. Reading the history is what finds it.
  */
 export function RootHistoryPage({ active }: { active: boolean }) {
-  const { data, loading, error } = useRoots(active);
+  const { data, isFetching, error } = useRoots(active);
 
   if (error) return <ErrorBanner error={error} />;
-  if (loading || !data) return <p className="muted">Reading the history…</p>;
+  if (isFetching || !data)
+    return <p className="muted">Reading the history…</p>;
 
   return (
     <>

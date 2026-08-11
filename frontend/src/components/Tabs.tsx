@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
+//
+// SPDX-License-Identifier: MIT
+
 export const TABS = [
   { id: 'roles', label: 'Roles' },
   { id: 'roots', label: 'Root history' },
