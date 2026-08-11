@@ -732,13 +732,30 @@ signature checks out.
 ```
 tests/unit           38 tests, under a second
 tests/integration    53 tests, real keys and real signatures
+tests/e2e             9 tests, a real browser on the real page
+frontend/src         11 tests, the tree layout and the header verdict
 ```
 
-The integration tests skip themselves where the platform cannot support them,
-and say why, so a green run never hides a gap. On Windows all 53 skip: the
-library caches its trust anchor behind a symbolic link, which Windows refuses
-without Developer Mode. `make test-docker` runs the whole suite on Linux,
-which is both where the service runs and what CI checks.
+The browser tests are the only layer that knows whether anything reached a
+screen. Everything below them can pass while the page stays blank: a response
+carrying the right fields is not a table a person can read. They start the
+real application on a port, serving the compiled interface exactly as the
+container does, and drive Chromium against a generated repository.
+
+They run as a second pytest session rather than alongside the rest, and that
+is not tidiness. Playwright's synchronous API drives an event loop of its own,
+and once it has run in a session pytest-asyncio stops awaiting the async tests
+that follow: they are collected, never run, and reported as failures. Keeping
+the two apart costs nothing, since the browser tests need the interface
+compiled and a browser installed while the others need neither.
+
+Every test that cannot run says why and skips, so a green run never hides a
+gap. On Windows all 53 integration tests skip, because the library caches its
+trust anchor behind a symbolic link and Windows refuses that without Developer
+Mode. The browser tests skip on three conditions of their own: the generator,
+the symbolic link, a compiled interface, and an installed browser.
+`make test-docker` runs everything on Linux, which is both where the service
+runs and what CI checks.
 
 That gap is not academic. A defect in the reported age of a reading sat
 undetected because the test covering it was one of the ones skipping locally,

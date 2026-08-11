@@ -2,7 +2,8 @@
 # runs the tests, `make run-local` starts the service on this machine.
 # None of it is needed to build or ship the service; it only saves typing.
 
-.PHONY: all setup test test-unit test-integration test-docker lint tests \
+.PHONY: all setup test test-unit test-integration test-e2e test-docker \
+	lint tests \
 	clean purge run-dev run-local stop build-dev reformat \
 	precommit coverage fixtures chart-lint help
 
@@ -15,14 +16,24 @@ reformat:  ## Reformat code with black and isort
 	black -l 79 .
 	isort -l79 --profile black .
 
+# Two sessions on purpose: see the note in pyproject.toml. The browser tests
+# skip themselves where the interface is not built or no browser is installed,
+# so this is safe to run anywhere.
 test:  ## Run the tests
 	pipenv run pytest
+	pipenv run pytest tests/e2e
 
 test-unit:  ## Run only the tests that reach nothing outside the process
 	pipenv run pytest tests/unit
 
 test-integration:  ## Run only the tests driven against a real repository
 	pipenv run pytest tests/integration
+
+# The interface has to be compiled and a browser installed before these can
+# run; both are conditions they check and skip on rather than failing.
+test-e2e:  ## Open the built interface in a real browser
+	pipenv run playwright install chromium
+	pipenv run pytest tests/e2e
 
 # python-tuf caches its trust anchor behind a symbolic link, which Windows
 # refuses without Developer Mode, so the integration tests skip themselves

@@ -155,7 +155,8 @@ The suite is split by what each test is allowed to touch:
 |---|---|
 | `make test-unit` | 38 tests that reach nothing outside the process, in under a second |
 | `make test-integration` | 53 tests driven against repositories built with real keys |
-| `make test-docker` | the whole suite on Linux, where nothing skips |
+| `make test-e2e` | 9 tests that open the built page in a real browser |
+| `make test-docker` | the whole backend suite on Linux, where nothing skips |
 
 The integration tests skip themselves on Windows, because `python-tuf`
 caches its trust anchor behind a symbolic link and Windows refuses that

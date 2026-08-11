@@ -8,7 +8,8 @@
 # Copying the commands up here would quietly change every one of those paths.
 
 .PHONY: all setup setup-backend setup-frontend build-frontend openapi \
-	test test-unit test-integration test-docker lint fixtures run-local help
+	test test-unit test-integration test-e2e test-docker lint fixtures \
+	run-local help
 
 all: help
 
@@ -39,6 +40,9 @@ test-unit:  ## Run only the tests that reach nothing outside the process
 
 test-integration:  ## Run only the tests driven against a real repository
 	$(MAKE) -C backend test-integration
+
+test-e2e: build-frontend  ## Open the built interface in a real browser
+	$(MAKE) -C backend test-e2e
 
 test-docker:  ## Run every test on Linux, where nothing skips
 	$(MAKE) -C backend test-docker

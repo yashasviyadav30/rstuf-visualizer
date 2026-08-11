@@ -10,7 +10,15 @@ requires-python = ">=3.13"
 license = { text = "MIT" }
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# The browser tests are deliberately not in this list, and `make test` runs
+# them as a second session.
+#
+# Playwright's synchronous API drives its own event loop, and once it has run
+# in a session pytest-asyncio stops awaiting the async tests that follow: they
+# are collected, never run, and reported as failures. Keeping the two apart is
+# the fix, and it costs nothing, because the browser tests need the interface
+# compiled and a browser installed while these need neither.
+testpaths = ["tests/unit", "tests/integration"]
 pythonpath = ["."]
 filterwarnings = ["ignore::DeprecationWarning"]
 asyncio_mode = "auto"

@@ -26,6 +26,7 @@ pytest = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
+pytest-playwright = "*"
 pre-commit = "*"
 
 [requires]

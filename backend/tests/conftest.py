@@ -30,6 +30,11 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_ROOT = BACKEND_ROOT / "fixtures"
 GENERATOR = BACKEND_ROOT / "scripts" / "gen_fixture.py"
 
+# What `npm run build` writes, and what the backend serves. Absent, the API
+# still answers and there is simply no page, which is what running the backend
+# alone during development looks like.
+FRONTEND_DIST = BACKEND_ROOT.parent / "frontend" / "dist"
+
 
 def symlinks_permitted() -> bool:
     """Report whether this process may create symbolic links.
@@ -96,6 +101,31 @@ requires_symlinks = pytest.mark.skipif(
 requires_fixtures = pytest.mark.skipif(
     not GENERATOR.exists(),
     reason="scripts/gen_fixture.py is required to build test repositories",
+)
+
+
+def browser_available() -> bool:
+    """Report whether a browser Playwright can drive is installed.
+
+    The browsers are a separate download from the library, so a machine can
+    have one and not the other. Asked here rather than left to fail inside a
+    fixture, because a test that cannot run should say so and skip.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return False
+
+    try:
+        with sync_playwright() as playwright:
+            return Path(playwright.chromium.executable_path).exists()
+    except Exception:  # noqa: BLE001 - any failure here means no browser
+        return False
+
+
+requires_browser = pytest.mark.skipif(
+    not browser_available(),
+    reason="no browser is installed; run `playwright install chromium`",
 )
 
 
