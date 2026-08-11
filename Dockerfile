@@ -27,6 +27,21 @@ RUN pipenv requirements --hash > requirements.txt \
     && /opt/venv/bin/pip install --no-cache-dir --require-hashes \
        -r requirements.txt
 
+# --- interface --------------------------------------------------------------
+#
+# The interface is React and TypeScript, so it is compiled here rather than
+# shipped as source. `npm ci` installs exactly what package-lock.json pins and
+# fails if the two have drifted, the same guarantee Pipfile.lock gives above.
+
+FROM node:22-slim AS interface
+
+WORKDIR /build
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/ ./
+RUN npm run build
+
 # --- runtime ----------------------------------------------------------------
 
 FROM python:3.13-slim
@@ -46,7 +61,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
 # beside it, exactly as it does when run from a checkout.
 WORKDIR /srv/backend
 COPY backend/app ./app
-COPY frontend /srv/frontend
+COPY --from=interface /build/dist /srv/frontend/dist
 
 # Nothing here writes to its own files. The one directory the service does
 # write is the trust directory under /tmp, which holds the metadata the TUF

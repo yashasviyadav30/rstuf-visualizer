@@ -270,3 +270,48 @@ input[type="search"]::placeholder { color: var(--muted); }
   border-top: 1px solid var(--border); padding: 1rem 0;
   color: var(--muted); font-size: 0.82rem;
 }
+
+/* --- added with the React interface ------------------------------------ */
+
+/* The bin list beside the artifact table. Narrow on purpose: it is an index,
+   and the table beside it is what a reader came for. */
+.col--narrow { flex: 0 0 220px; }
+
+.bins { list-style: none; margin: 0; padding: 0; max-height: 60vh;
+        overflow-y: auto; }
+.bins li { margin: 0 0 2px; }
+
+.bin { display: flex; justify-content: space-between; align-items: center;
+       width: 100%; padding: 6px 10px; border: 1px solid transparent;
+       border-radius: 5px; background: none; color: inherit; cursor: pointer;
+       font: inherit; text-align: left; }
+.bin:hover { background: var(--panel-2, rgba(255, 255, 255, 0.04)); }
+.bin.is-selected { border-color: var(--accent, #69f);
+                   background: var(--panel-2, rgba(255, 255, 255, 0.06)); }
+.bin:disabled { opacity: 0.5; cursor: not-allowed; }
+.bin__count { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.linklike { background: none; border: 0; padding: 0; font: inherit;
+            color: inherit; cursor: pointer; text-align: left; }
+
+.path { word-break: break-all; }
+.hash { font-family: ui-monospace, monospace; color: var(--muted); }
+
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px;
+         margin: 0 0 12px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+
+.roots { list-style: none; margin: 0; padding: 0; }
+.root { border-left: 2px solid var(--valid, #5c8);
+        padding: 0 0 12px 14px; margin: 0 0 12px; }
+.root--unverified { border-left-color: var(--expired, #e66); }
+.root h3 { margin: 0 0 4px; font-size: 15px; }
+
+.changes { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; }
+.change { text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
+.change--added { color: var(--valid, #5c8); }
+.change--removed { color: var(--expired, #e66); }
+
+.keys, .paths { list-style: none; margin: 0 0 12px; padding: 0; }
+.keys li, .paths li { margin: 0 0 4px; }

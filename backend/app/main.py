@@ -23,9 +23,14 @@ from app.config import cors_origins
 from app.handlers import artifacts, health, overview, roles, roots, status
 from app.middleware.logging import RequestLogMiddleware
 
-# The image keeps the layout of the source tree, so the interface sits beside
-# the backend in both.
-FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
+# What `npm run build` produces. The image keeps the layout of the source
+# tree, so this is the same path in a checkout and in the container.
+#
+# Absent, the API still answers and the interface simply is not there, which
+# is what running the backend alone during development looks like.
+FRONTEND_DIR = (
+    Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+)
 
 
 def create_app() -> FastAPI:

@@ -25,10 +25,14 @@ halves: a web server in front of a generated repository, and the visualizer
 pointed at its URL.
 
 ```bash
-cd backend
-pipenv install --dev
-pipenv run ./scripts/run_local.sh          # or: make run-local
+make setup                                 # both halves
+make build-frontend                        # the backend serves what this writes
+cd backend && pipenv run ./scripts/run_local.sh
 ```
+
+While working on the interface, `cd frontend && npm run dev` serves it on
+port 5173 and forwards `/api` to the backend, so a change appears without a
+rebuild.
 
 The interface and the API are both served on <http://localhost:8000>, with
 interactive documentation at `/docs`. Pass `expired` or `tampered` to run
@@ -190,7 +194,14 @@ backend/
 └── tests/
     ├── unit/            reaches nothing outside the process
     └── integration/     real keys, real signatures
-frontend/                the interface, served by the backend
+frontend/                React and TypeScript, built by Vite
+├── openapi.json         the backend's schema; the types come from it
+└── src/
+    ├── api/             one fetch wrapper, and generated types
+    ├── components/      what more than one page uses
+    ├── hooks/           one request, and what a screen needs to know
+    └── pages/           one folder per tab, with its own components,
+                         endpoints, hooks and types
 charts/rstuf-visualizer/ the Helm chart
 Dockerfile               builds both halves into one image
 ```

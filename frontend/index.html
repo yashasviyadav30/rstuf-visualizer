@@ -1,141 +1,16 @@
-<!DOCTYPE html>
-<!--
-  SPDX-FileCopyrightText: 2026 Repository Service for TUF Contributors
-  SPDX-License-Identifier: MIT
-
-  The entire interface, in one file. No framework and no build step, so what
-  you read here is what the browser runs. Everything it shows arrives from
-  this service's own API, already verified.
--->
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Read-only view of a TUF repository managed by Repository Service for TUF.">
-<title>RSTUF Metadata Visualizer</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236699ff' stroke-width='2'><path d='M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z'/></svg>">
-<link rel="stylesheet" href="styles/main.css">
-</head>
-<body>
-
-<header class="topbar">
-  <div class="container topbar__inner">
-    <h1 class="topbar__title">RSTUF Metadata Visualizer</h1>
-    <span class="badge badge--loading" id="health-badge">
-      <span class="badge__dot"></span><span id="health-label">Checking…</span>
-    </span>
-    <div class="topbar__right">
-      <span class="checked" id="checked-at"></span>
-      <button class="btn" id="refresh-btn" type="button" title="Check the repository now">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="23 4 23 10 17 10"/>
-          <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
-        </svg>
-        Refresh
-      </button>
-    </div>
-  </div>
-</header>
-
-<nav class="tabs">
-  <div class="container tabs__inner">
-    <button class="tab is-active" data-tab="roles" type="button">Roles</button>
-    <button class="tab" data-tab="roots" type="button">Root history</button>
-    <button class="tab" data-tab="artifacts" type="button">Artifacts</button>
-    <button class="tab" data-tab="status" type="button">Status</button>
-  </div>
-</nav>
-
-<main class="container">
-
-  <div id="banner" class="banner" hidden></div>
-
-  <!-- ROLES -->
-  <section class="panel is-active" id="tab-roles">
-    <div class="split">
-
-      <div class="col">
-        <h2 class="section-title">Roles</h2>
-        <table class="table" id="roles-table">
-          <thead>
-            <tr>
-              <th>Role</th><th>Signers</th><th>Ver.</th>
-              <th>Expiry</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="roles-body">
-            <tr><td colspan="5" class="muted">Loading…</td></tr>
-          </tbody>
-        </table>
-
-        <h2 class="section-title">Delegation tree</h2>
-        <div class="tree" id="tree"></div>
-      </div>
-
-      <aside class="col">
-        <h2 class="section-title">Detail</h2>
-        <div class="detail" id="detail">
-          <p class="muted">Select a role to see its keys, signatures and
-          artifacts.</p>
-        </div>
-      </aside>
-
-    </div>
-  </section>
-
-  <!-- ROOT HISTORY -->
-  <section class="panel" id="tab-roots">
-    <h2 class="section-title">How root reached its current version</h2>
-    <div id="roots-body"><p class="muted">Open this tab to read the
-    history.</p></div>
-    <p class="note">Each version must be signed by the keys of the version
-    before it and by its own. A step that fails that rule is marked, not
-    hidden, and an ordinary refresh would never look: a client walks forward
-    from the root it already holds and does not read older ones again.</p>
-  </section>
-
-  <!-- ARTIFACTS -->
-  <section class="panel" id="tab-artifacts">
-    <h2 class="section-title">Artifacts</h2>
-    <div class="toolbar">
-      <input type="search" id="artifact-search" placeholder="Search by path…">
-      <span class="muted" id="artifact-count"></span>
-      <div class="pager" id="artifact-pager" hidden>
-        <button class="btn" id="artifact-prev" type="button">Previous</button>
-        <button class="btn" id="artifact-next" type="button">Next</button>
-      </div>
-    </div>
-    <div id="artifact-shortfall" class="banner" hidden></div>
-    <table class="table">
-      <thead>
-        <tr><th>Path</th><th>Role</th><th>Size</th><th>SHA-256</th></tr>
-      </thead>
-      <tbody id="artifacts-body">
-        <tr><td colspan="4" class="muted">Open this tab to load artifacts.</td></tr>
-      </tbody>
-    </table>
-    <p class="note">Paths, sizes and hashes only. This service never serves
-    artifact files, and never says one is safe to install.</p>
-  </section>
-
-  <!-- STATUS -->
-  <section class="panel" id="tab-status">
-    <h2 class="section-title">Repository status</h2>
-    <div id="status-body"><p class="muted">Loading…</p></div>
-  </section>
-
-</main>
-
-<footer class="footer">
-  <div class="container">
-    Read-only · every file shown was verified with
-    <a href="https://github.com/theupdateframework/python-tuf">python-tuf</a>
-    before it reached this page.
-  </div>
-</footer>
-
-<script src="scripts/api.js"></script>
-<script src="scripts/app.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSTUF Visualizer</title>
+    <meta
+      name="description"
+      content="Read-only view of a TUF repository managed by RSTUF"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

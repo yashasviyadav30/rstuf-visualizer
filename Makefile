@@ -7,8 +7,8 @@
 # pytest both read their configuration expecting to start from backend/.
 # Copying the commands up here would quietly change every one of those paths.
 
-.PHONY: all setup setup-backend setup-frontend test test-unit \
-	test-integration test-docker lint fixtures run-local help
+.PHONY: all setup setup-backend setup-frontend build-frontend openapi \
+	test test-unit test-integration test-docker lint fixtures run-local help
 
 all: help
 
@@ -18,12 +18,21 @@ setup-backend:  ## Install the backend's dependencies
 	$(MAKE) -C backend setup
 
 setup-frontend:  ## Install the interface's dependencies
-	@echo "The interface is plain HTML, CSS and JavaScript served by the"
-	@echo "backend, so there is nothing to install yet. This target exists"
-	@echo "so that setup stays one command once that changes."
+	cd frontend && npm ci
 
-test:  ## Run every test
+build-frontend:  ## Compile the interface; the backend serves what this writes
+	cd frontend && npm run build
+
+openapi:  ## Refresh the schema the interface's types are generated from
+	cd backend && pipenv run python -c "import json; \
+		from app.main import create_app; \
+		json.dump(create_app().openapi(), \
+		open('../frontend/openapi.json','w'), indent=2)"
+	cd frontend && npm run types
+
+test:  ## Run every test, both halves
 	$(MAKE) -C backend test
+	cd frontend && npm run test
 
 test-unit:  ## Run only the tests that reach nothing outside the process
 	$(MAKE) -C backend test-unit

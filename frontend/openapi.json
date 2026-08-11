@@ -1,0 +1,1179 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "RSTUF Visualizer",
+    "description": "Read-only view of a TUF repository managed by RSTUF.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Healthz",
+        "description": "Report that the process is alive.\n\nPolled by the container orchestrator, not by the browser. It says\nnothing about the state of the TUF repository.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Healthz Healthz Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/overview": {
+      "get": {
+        "tags": [
+          "metadata"
+        ],
+        "summary": "Overview",
+        "description": "Describe the repository: its roles, their state, and the tree.",
+        "operationId": "overview_api_v1_overview_get",
+        "parameters": [
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Discard the cached result and check the repository now",
+              "default": false,
+              "title": "Refresh"
+            },
+            "description": "Discard the cached result and check the repository now"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roles/{role}": {
+      "get": {
+        "tags": [
+          "metadata"
+        ],
+        "summary": "Role Detail",
+        "description": "Open one role.\n\nTop-level roles were verified during the refresh. A delegated role is\nfetched now and checked by its parent, which is what makes opening one\ncost a single request instead of every bin costing one up front.",
+        "operationId": "role_detail_api_v1_roles__role__get",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,128}$",
+              "description": "Role name",
+              "title": "Role"
+            },
+            "description": "Role name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roles/{role}/raw": {
+      "get": {
+        "tags": [
+          "metadata"
+        ],
+        "summary": "Role Raw",
+        "description": "Serve the bytes one role was verified from.\n\nSent as a download rather than rendered, and never as HTML, so a\nrepository cannot put script into a file this service hands to a browser.",
+        "operationId": "role_raw_api_v1_roles__role__raw_get",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,128}$",
+              "description": "Role name",
+              "title": "Role"
+            },
+            "description": "Role name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roots": {
+      "get": {
+        "tags": [
+          "metadata"
+        ],
+        "summary": "Roots",
+        "description": "Show how root reached its current version.\n\nEach step is checked against the rule the specification sets for a\nrotation, so a version that cannot be tied to the one before it is\nreported as exactly that rather than shown as settled history.",
+        "operationId": "roots_api_v1_roots_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 256,
+              "minimum": 1,
+              "description": "How many versions back to walk, newest first",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "How many versions back to walk, newest first"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RootsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/artifacts/bins": {
+      "get": {
+        "tags": [
+          "metadata"
+        ],
+        "summary": "Artifact Bins",
+        "description": "Name every role holding artifacts, with how many it holds.\n\nAsked for before the artifacts themselves, so a repository split across\ntwo hundred and fifty-six bins opens as a list of counts rather than as\na table of every package it has ever carried.",
+        "operationId": "artifact_bins_api_v1_artifacts_bins_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactBinsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/artifacts": {
+      "get": {
+        "tags": [
+          "metadata"
+        ],
+        "summary": "Artifacts",
+        "description": "List the artifacts the repository vouches for.\n\nNames, sizes and hashes only. The visualizer never serves the files\nthemselves, and never claims one is safe to install.",
+        "operationId": "artifacts_api_v1_artifacts_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256,
+              "default": "",
+              "title": "Search"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^$|^[A-Za-z0-9._-]{1,128}$",
+              "description": "Limit to one role. Omit to search across all of them",
+              "default": "",
+              "title": "Role"
+            },
+            "description": "Limit to one role. Omit to search across all of them"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "tags": [
+          "metadata"
+        ],
+        "summary": "Status",
+        "description": "Report what the RSTUF API says, and say so when it says nothing.\n\nThis never fails the request. Status is helpful, not load-bearing, so an\nunreachable API hides one panel and leaves the rest of the page standing.",
+        "operationId": "status_api_v1_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArtifactBinsResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "bins": {
+            "items": {
+              "$ref": "#/components/schemas/BinSummary"
+            },
+            "type": "array",
+            "title": "Bins"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "ArtifactBinsResponse",
+        "description": "Every role holding artifacts, so the browser can open one at a time.\n\nThe interface asks for this before it asks for artifacts, which is what\nkeeps a repository of two hundred bins from sending two hundred bins to\ndraw one screen."
+      },
+      "ArtifactSummary": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "length": {
+            "type": "integer",
+            "title": "Length"
+          },
+          "hashes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Hashes"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "The delegated role listing it"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "length",
+          "role"
+        ],
+        "title": "ArtifactSummary",
+        "description": "One artifact listed by a delegated role."
+      },
+      "ArtifactsResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactSummary"
+            },
+            "type": "array",
+            "title": "Artifacts"
+          },
+          "unavailable": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unavailable",
+            "description": "Delegated roles that could not be read. Whatever they list is missing from this page, and from the total beside it, so the shortfall is named rather than left to look like an empty bin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "ArtifactsResponse",
+        "description": "A page of artifacts, gathered from delegated roles."
+      },
+      "BinSummary": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "description": "False when the role could not be read. Its count is then 0, which is not the same as the role being empty",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "count"
+        ],
+        "title": "BinSummary",
+        "description": "One role that holds artifacts, and how many it holds."
+      },
+      "DelegatedSummary": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "loaded": {
+            "type": "boolean",
+            "title": "Loaded",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "DelegatedSummary",
+        "description": "A delegated role that has not been fetched.\n\nIts name comes from the delegation rule and its version from snapshot, so\nboth are known without downloading the file. Everything else waits until\nsomebody opens it."
+      },
+      "ExpiryBand": {
+        "type": "string",
+        "enum": [
+          "expired",
+          "critical",
+          "expiring",
+          "valid"
+        ],
+        "title": "ExpiryBand",
+        "description": "How close a role is to expiring.\n\nValid and expired alone hide the difference that matters. Timestamp is\nrenewed roughly daily, so in normal operation it sits in ``CRITICAL``;\ncalling that plain ``VALID`` until the moment it lapses discards the only\nuseful warning."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "KeyChangeAction": {
+        "type": "string",
+        "enum": [
+          "added",
+          "removed"
+        ],
+        "title": "KeyChangeAction",
+        "description": "What a rotation did to one key."
+      },
+      "KeySummary": {
+        "properties": {
+          "keyid": {
+            "type": "string",
+            "title": "Keyid",
+            "description": "Full key identifier"
+          },
+          "keyid_short": {
+            "type": "string",
+            "title": "Keyid Short",
+            "description": "First 8 characters, for display"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Readable name, or the short identifier"
+          },
+          "scheme": {
+            "type": "string",
+            "title": "Scheme",
+            "default": ""
+          },
+          "online": {
+            "type": "boolean",
+            "title": "Online",
+            "description": "True when RSTUF records an online key URI for it",
+            "default": false
+          },
+          "signs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signs",
+            "description": "Roles this key is authorised for"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keyid",
+          "keyid_short",
+          "name"
+        ],
+        "title": "KeySummary",
+        "description": "One signing key, named rather than shown as a bare identifier."
+      },
+      "OverviewResponse": {
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/RepositoryState"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RoleStatus",
+            "default": "unknown"
+          },
+          "checked_at": {
+            "type": "string",
+            "title": "Checked At",
+            "description": "When this was verified",
+            "default": ""
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/RoleSummary"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "delegated": {
+            "items": {
+              "$ref": "#/components/schemas/DelegatedSummary"
+            },
+            "type": "array",
+            "title": "Delegated",
+            "description": "Delegated roles, named but not yet fetched"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/TreeEdge"
+            },
+            "type": "array",
+            "title": "Edges"
+          },
+          "verification_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Error",
+            "description": "Why verification stopped, when it did"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Explanation shown when no tree is available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state"
+        ],
+        "title": "OverviewResponse",
+        "description": "Everything the initial page render needs."
+      },
+      "RepositoryState": {
+        "type": "string",
+        "enum": [
+          "ready",
+          "not_initialised",
+          "initialising",
+          "awaiting_signatures"
+        ],
+        "title": "RepositoryState",
+        "description": "How far the repository has progressed through initialisation."
+      },
+      "RoleDetailResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "expires": {
+            "type": "string",
+            "title": "Expires"
+          },
+          "expires_in": {
+            "type": "string",
+            "title": "Expires In",
+            "default": ""
+          },
+          "band": {
+            "$ref": "#/components/schemas/ExpiryBand",
+            "default": "valid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RoleStatus",
+            "default": "unknown"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "signed_by": {
+            "items": {
+              "$ref": "#/components/schemas/KeySummary"
+            },
+            "type": "array",
+            "title": "Signed By"
+          },
+          "signatures_present": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signatures Present",
+            "description": "Valid signatures found on this role"
+          },
+          "signature_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature Note",
+            "description": "Stated when a role is short of signatures"
+          },
+          "delegates_to": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Delegates To"
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactSummary"
+            },
+            "type": "array",
+            "title": "Artifacts"
+          },
+          "raw_url": {
+            "type": "string",
+            "title": "Raw Url",
+            "description": "Where to read the bytes this role was verified from, served by this service rather than linked to the storage behind it",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "expires"
+        ],
+        "title": "RoleDetailResponse",
+        "description": "One role, opened."
+      },
+      "RoleStatus": {
+        "type": "string",
+        "enum": [
+          "valid",
+          "expired",
+          "invalid",
+          "unknown"
+        ],
+        "title": "RoleStatus",
+        "description": "Outcome of verifying one role."
+      },
+      "RoleSummary": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "expires": {
+            "type": "string",
+            "title": "Expires",
+            "description": "ISO-8601 expiry timestamp"
+          },
+          "expires_in": {
+            "type": "string",
+            "title": "Expires In",
+            "description": "Readable distance to expiry",
+            "default": ""
+          },
+          "band": {
+            "$ref": "#/components/schemas/ExpiryBand",
+            "default": "valid"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold",
+            "description": "Signatures required, when declared by a parent"
+          },
+          "key_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Count",
+            "description": "Keys authorised to sign this role"
+          },
+          "key_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Names"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RoleStatus",
+            "default": "unknown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "expires"
+        ],
+        "title": "RoleSummary",
+        "description": "One verified role, as shown in the table and the tree."
+      },
+      "RootKeyChange": {
+        "properties": {
+          "keyid": {
+            "type": "string",
+            "title": "Keyid"
+          },
+          "keyid_short": {
+            "type": "string",
+            "title": "Keyid Short"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "action": {
+            "$ref": "#/components/schemas/KeyChangeAction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keyid",
+          "keyid_short",
+          "name",
+          "action"
+        ],
+        "title": "RootKeyChange",
+        "description": "One key a rotation introduced or withdrew.\n\nA key identifier is derived from the key itself, so editing a key\nproduces a new identifier. Altering a key therefore appears here as one\nremoval and one addition, which is also how a verifier sees it."
+      },
+      "RootRoleChange": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "threshold_before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Before"
+          },
+          "threshold_after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold After"
+          },
+          "signers_added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signers Added"
+          },
+          "signers_removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signers Removed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "RootRoleChange",
+        "description": "How a rotation changed who may sign one role, and how many must."
+      },
+      "RootVersionSummary": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "expires": {
+            "type": "string",
+            "title": "Expires"
+          },
+          "expires_in": {
+            "type": "string",
+            "title": "Expires In",
+            "default": ""
+          },
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpiryBand"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How close this version is to expiring. Absent once a version has been superseded, because a client checks expiry only on the final root, so an old version lapsing means nothing"
+          },
+          "superseded": {
+            "type": "boolean",
+            "title": "Superseded",
+            "description": "True for every version but the current one",
+            "default": false
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "True when every check that applies to it passed"
+          },
+          "by_own_keys": {
+            "$ref": "#/components/schemas/SignatureCheckSummary"
+          },
+          "by_previous_keys": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignatureCheckSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent for version one, and where the chain stops"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "Stated when a check did not pass"
+          },
+          "key_count": {
+            "type": "integer",
+            "title": "Key Count",
+            "default": 0
+          },
+          "keys_changed": {
+            "items": {
+              "$ref": "#/components/schemas/RootKeyChange"
+            },
+            "type": "array",
+            "title": "Keys Changed"
+          },
+          "roles_changed": {
+            "items": {
+              "$ref": "#/components/schemas/RootRoleChange"
+            },
+            "type": "array",
+            "title": "Roles Changed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "expires",
+          "verified",
+          "by_own_keys"
+        ],
+        "title": "RootVersionSummary",
+        "description": "One version of root, with what it changed and whether it checks out."
+      },
+      "RootsResponse": {
+        "properties": {
+          "current": {
+            "type": "integer",
+            "title": "Current",
+            "description": "The version in force now"
+          },
+          "earliest": {
+            "type": "integer",
+            "title": "Earliest",
+            "description": "The oldest version read"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/RootVersionSummary"
+            },
+            "type": "array",
+            "title": "Versions"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Stated when the history is partial, and why"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current",
+          "earliest"
+        ],
+        "title": "RootsResponse",
+        "description": "Root's history, newest version first."
+      },
+      "SignatureCheckSummary": {
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "title": "Verified"
+          },
+          "present": {
+            "type": "integer",
+            "title": "Present",
+            "description": "Valid signatures found"
+          },
+          "threshold": {
+            "type": "integer",
+            "title": "Threshold",
+            "description": "Valid signatures required"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verified",
+          "present",
+          "threshold"
+        ],
+        "title": "SignatureCheckSummary",
+        "description": "One threshold check, reported with the numbers behind it."
+      },
+      "StatusResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "description": "False when the RSTUF API cannot be reached",
+            "default": false
+          },
+          "state": {
+            "$ref": "#/components/schemas/RepositoryState",
+            "default": "not_initialised"
+          },
+          "bootstrap": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bootstrap"
+          },
+          "awaiting_signatures": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Awaiting Signatures"
+          },
+          "keys": {
+            "items": {
+              "$ref": "#/components/schemas/KeySummary"
+            },
+            "type": "array",
+            "title": "Keys"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "title": "StatusResponse",
+        "description": "Live repository status, taken from the RSTUF API."
+      },
+      "TreeEdge": {
+        "properties": {
+          "parent": {
+            "type": "string",
+            "title": "Parent"
+          },
+          "child": {
+            "type": "string",
+            "title": "Child"
+          }
+        },
+        "type": "object",
+        "required": [
+          "parent",
+          "child"
+        ],
+        "title": "TreeEdge",
+        "description": "A delegation from one role to another."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

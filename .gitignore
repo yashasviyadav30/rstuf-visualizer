@@ -11,3 +11,7 @@ __pycache__/
 
 # Generated test fixtures (rebuild with scripts/gen_fixture.py)
 backend/fixtures/
+
+# Frontend dependencies and build output
+node_modules/
+frontend/dist/

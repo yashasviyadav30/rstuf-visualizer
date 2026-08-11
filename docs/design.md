@@ -519,21 +519,28 @@ It is registered last, so API routes and the health probe are matched first
 and the interface only answers for paths nothing else claimed. One image, one
 origin, and no cross-site arrangement for a browser to negotiate.
 
-The interface is plain HTML, CSS and JavaScript today, copied into the image
-as it is, so there is no build step to run and nothing to go stale between
-the source and what ships. A frontend with a build step changes that: the
-image gains a stage that produces static files and the directory above
-becomes wherever that stage wrote them. Nothing else moves, which is the
-point of serving a directory rather than naming files.
+The interface is React and TypeScript, compiled by Vite, so the image builds
+it rather than copying source. That is a third stage, alongside the one that
+resolves Python dependencies, and only its output reaches the image that
+ships: no Node, no `node_modules`, no TypeScript.
+
+`npm ci` installs exactly what `package-lock.json` pins and fails when the two
+have drifted, which is the guarantee `pipenv install --deploy` gives on the
+other side.
+
+The types the interface holds the backend to are generated from the backend's
+own OpenAPI document rather than written by hand, so a field renamed on the
+server becomes a compile error in the component that reads it instead of
+`undefined` on a screen. `make openapi` refreshes them.
 
 The image is built in stages, matching the pattern used by RSTUF's own
 services: dependencies resolved in a builder stage, then only the installed
 packages and the application copied into a slim final image.
 
 ```
-frontend ─┐
-          ├─►  one image  ─►  ghcr.io  ─►  Helm chart  ─►  rstuf-demo
-backend  ─┘
+frontend ──npm run build──┐
+                          ├─►  one image  ─►  ghcr.io  ─►  chart  ─►  demo
+backend  ──pipenv────────┘
 ```
 
 Cross-origin access is off by default and exists for one case: a frontend
@@ -679,7 +686,15 @@ backend/
     ├── base.py             UnitTestCase, RepositoryTestCase
     ├── unit/               reaches nothing outside the process
     └── integration/        real keys, real signatures, real HTTP
-frontend/                   served by the backend, same origin
+frontend/                   React and TypeScript, built by Vite
+├── index.html              the entry point
+├── openapi.json            the backend's schema, and the source of the types
+└── src/
+    ├── api/                one fetch wrapper, and generated types
+    ├── components/         what more than one page uses
+    ├── hooks/              one request, and the three things a screen needs
+    └── pages/              one folder per tab, each with its own
+                            components, endpoints, hooks and types
 ```
 
 `presenters.py` sits under `services/` rather than `repositories/` on
