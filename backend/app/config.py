@@ -9,6 +9,7 @@ Each setting is prefixed with ``RSTUF_``: the field ``metadata_url`` comes
 from ``RSTUF_METADATA_URL``.
 """
 
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -48,3 +49,20 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return the settings, reading the environment only on first call."""
     return Settings()
+
+
+def cors_origins() -> list[str]:
+    """Origins allowed to call the API from a browser, comma separated.
+
+    Empty by default, and that is the normal deployment: the interface is
+    served from this same process, so a browser needs no cross-site
+    permission to reach the API. A frontend development server does, because
+    it answers on a port of its own.
+
+    Read straight from the environment rather than through ``Settings``.
+    Middleware is attached while the application is being built, and
+    ``Settings`` requires a metadata URL that importing the application, or
+    dumping its schema, has no reason to supply.
+    """
+    raw = os.environ.get("RSTUF_CORS_ORIGINS", "")
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
