@@ -48,7 +48,7 @@ Set A.
 
 | Set | Direction | Addresses |
 |---|---|---|
-| A | browser → our backend | `/api/v1/overview`, `/api/v1/roles/{role}`, `/api/v1/artifacts`, `/api/v1/status`, `/api/v1/roots` |
+| A | browser → our backend | `/api/v1/overview`, `/api/v1/roles/{role}`, `/api/v1/roles/{role}/raw`, `/api/v1/artifacts/bins`, `/api/v1/artifacts`, `/api/v1/status`, `/api/v1/roots` |
 | B | our backend → RSTUF API | `/api/v1/config/`, `/api/v1/bootstrap/`, `/api/v1/metadata/sign` |
 | C | our backend → storage | `timestamp.json`, `{version}.{role}.json` |
 
@@ -61,15 +61,32 @@ routes cleanly apart from the frontend, which owns every other path.
 Set C carries the trust picture and is checked. Set B carries live status and is
 not, because status is not a security claim.
 
-The division that matters: **no metadata file is ever fetched by a call we
-write.** Set C is a plain base URL handed to the client, which fetches and
-checks every file behind it. Set B never carries metadata. It answers
-questions the metadata cannot: whether the repository has been bootstrapped,
-what is waiting to be signed, and which readable name belongs to a key.
+The division that matters: **nothing is shown that was not checked against
+something already trusted.** Set C is a plain base URL handed to the client,
+which fetches the top-level chain behind it and verifies every file. Set B
+never carries metadata. It answers questions the metadata cannot: whether the
+repository has been bootstrapped, what is waiting to be signed, and which
+readable name belongs to a key.
 
-The single exception proves the rule. The trust anchor arrives through Set B,
-because trust cannot be bootstrapped by the files being checked. The client
-requires those bytes to be handed to it and never fetches them itself.
+Two kinds of file are fetched by calls this service writes rather than by the
+client, and both are checked before anything they contain reaches a screen:
+
+| File | Fetched by | Checked against |
+|---|---|---|
+| a delegated role, when someone opens it | `client/tuf_client.py` | its parent's delegation entry, through `verify_delegate` |
+| an older version of root, when reading history | `repositories/root_repository.py` | the version that superseded it, by the same call |
+
+Neither is fetched by the client because the client has no reason to: it
+resolves the chain it needs to verify the repository and stops. Bins load
+only when asked, and superseded roots are not on the path to anything. So
+this service asks for them itself, and then hands each one to the library to
+check against a role that is already trusted. A file that fails is reported
+as failing, never shown as history or as contents.
+
+The trust anchor is the one file with nothing above it. It arrives through
+Set B, because trust cannot be bootstrapped by the files being checked, and
+the client requires those bytes to be handed to it rather than fetching them
+itself.
 
 ---
 
@@ -110,11 +127,9 @@ the storage itself, and weaker than a root an operator hands over.
 ```python
 updater = Updater(
     metadata_dir=str(trust_dir),
-    metadata_base_url=settings.metadata_url,
-    target_base_url=settings.artifacts_url,
-    fetcher=VisualizerFetcher(settings),
-    config=updater_config,
-    bootstrap=root_bytes,
+    metadata_base_url=metadata_url,
+    bootstrap=bootstrap,
+    config=UPDATER_CONFIG,
 )
 await asyncio.to_thread(updater.refresh)
 ```
@@ -140,41 +155,45 @@ own, which stays cheap because the cache absorbs it.
 `refresh()` does **not** load delegated roles. Those load on demand, which
 suits a screen that only shows them when asked.
 
-### Our own network layer
-
-The library accepts a replacement fetcher, and that is where our own
-behaviour belongs:
-
-```python
-class VisualizerFetcher(FetcherInterface):
-    def _fetch(self, url: str) -> Iterator[bytes]:
-        ...
-```
-
-It carries our timeout, retries, request logging, and any headers a
-deployment behind a gateway needs. Swapping the transport later touches no
-other file.
-
 ### Client settings
 
 ```python
-UpdaterConfig(
+UPDATER_CONFIG = UpdaterConfig(
     max_root_rotations=256,
     max_delegations=32,
     root_max_length=512_000,
     timestamp_max_length=16_384,
     snapshot_max_length=2_000_000,
     targets_max_length=5_000_000,
-    prefix_targets_with_hash=True,
     app_user_agent="rstuf-visualizer/0.1.0",
 )
 ```
 
-The length caps bound how much we read before giving up, so a storage server
-cannot feed us an unbounded file. `prefix_targets_with_hash` must be
-configurable because RSTUF's own client reads it from a per-repository
-setting, and getting it wrong breaks artifact paths. `app_user_agent` lets an
-operator recognise us in their logs.
+The length caps bound how much is read before giving up, so a storage server
+we do not control cannot answer a request for `timestamp.json` with an
+endless stream. They are generous for real metadata: a repository with two
+hundred and fifty-six bins has a snapshot listing all of them and is nowhere
+near two megabytes. `max_root_rotations` is what makes pinning a root safe to
+do once and leave alone, and `app_user_agent` lets an operator recognise us
+in the logs of a server that belongs to someone else.
+
+### The transport, and where ours would go
+
+The library's own fetcher is what runs today. Its timeouts and its retry
+behaviour are the library's, not ours.
+
+`FetcherInterface` is the seam if that has to change. A deployment behind a
+gateway needing particular headers, or one wanting request logging and
+retries on our terms rather than the library's, gets a subclass passed as
+`fetcher=`, and nothing outside this one call changes. That is worth knowing
+about and worth not building until something asks for it: the default
+fetcher's behaviour has been adequate against every repository this has been
+run against, and a replacement is code that would have to be maintained
+against a library that already ships one.
+
+Our own timeout does apply to the two files this service fetches itself, the
+delegated roles and the older roots, because those go through `httpx` calls
+we wrote and `RSTUF_REQUEST_TIMEOUT_SECONDS` bounds them.
 
 ### Building the tree costs no extra fetches
 
@@ -290,7 +309,8 @@ OverviewResponse
 | tree | `/api/v1/overview` | the same data drawn as a graph |
 | role detail | `/api/v1/roles/{role}` | keys, signatures, expiry, and a link to the signed file |
 | signed file | `/api/v1/roles/{role}/raw` | the bytes that role was verified from |
-| artifacts | `/api/v1/artifacts` | path, hash and size, searchable and paged |
+| artifact bins | `/api/v1/artifacts/bins` | every role holding artifacts, with a count each |
+| artifacts | `/api/v1/artifacts` | path, hash and size, one bin at a time or searched across all |
 | status | `/api/v1/status` | whether the repository is ready, and what awaits signing |
 | root history | `/api/v1/roots` | what changed between two versions of root |
 
@@ -312,13 +332,42 @@ valid          beyond that
 
 Timestamp is the reason this earns its place. It is renewed roughly daily, so
 it sits in the critical band during normal operation, and a countdown beside
-it turns an abstract date into something a person can act on. One badge in the
-header carries the worst band found anywhere in the repository, so a glance
-answers whether anything needs attention.
+it turns an abstract date into something a person can act on.
 
-A refresh control sits next to it. The cache exists to spare the storage
-server, not to argue with someone who wants to know the state right now, so
-asking explicitly clears it and fetches again.
+### One badge that means something
+
+The header badge does **not** carry the worst band found anywhere. It cannot:
+timestamp is inside a day of expiring whenever the repository is working
+normally, so a badge showing the worst band would be amber for ever, and a
+warning that is always on is not a warning.
+
+It answers a narrower question. Something expired, or a signature that did not
+check out, is wrong and turns it red. Root running down turns it amber,
+because root is the one role no worker can renew: it is signed offline, by
+people, and nothing rescues it automatically. Everything else is green.
+
+The per-role bands stay in the table, where a one-day expiry on timestamp
+reads as the ordinary information it is.
+
+### Refreshing without defeating the cache
+
+A refresh control sits beside the badge. The cache exists to spare the storage
+server, not to argue with someone who wants the state right now.
+
+But a visible button is pressed by everyone who arrives, every time, so
+honouring every press would mean a full verification pass per visitor while
+the repository has not moved. A refresh within five seconds of the last
+reading is therefore declined, quietly and quickly. That is a rate limit
+rather than a refusal: once the answer in hand is old enough that a new one
+could differ, pressing it reads the repository again. RSTUF's own worker
+renews metadata every few minutes, so nothing is lost.
+
+The label beside it says how old the answer is in words, "checked 4 seconds
+ago", rather than as a clock time. What sends someone to that button is not
+knowing whether the screen is current, and saying so removes the reason to
+press it. The age comes from the reading itself rather than from the clock at
+the moment of replying, or a cached answer would claim to have been checked
+the instant it was served.
 
 A deployment normally points at one repository, set by its operator. Where a
 demo deployment wants visitors to explore, the landing page can offer example
@@ -431,9 +480,8 @@ Each row is a real mechanism, not an intention.
 | number of delegated roles | derived from the rule, any count |
 | named roles instead of a rule | both forms already handled |
 | depth of delegation | followed by the library, bounded by a setting |
-| the network itself | replaceable through the fetcher interface |
+| the network itself | the library's fetcher runs today; `FetcherInterface` is the seam a replacement passes through, and it touches one call |
 | where the trust anchor lives | three ordered sources |
-| artifact path style | a setting, matching RSTUF's client |
 | where metadata lives | a setting, never a code path |
 | how responses are cached | callers see a two-method interface, so a shared store such as Redis can replace the in-process cache without touching them |
 | more than one repository | the metadata layer takes the repository as an argument rather than reading global state, so a second repository is added by configuration |
@@ -460,25 +508,40 @@ those; one built as a browser-side reader does not.
 
 ## 9. Packaging
 
-The frontend is built to static files, which the backend serves. FastAPI
-offers this directly:
+The backend serves the frontend, from the same process and the same origin.
+FastAPI offers this directly:
 
 ```python
-app.frontend("/", directory="dist")
+application.frontend("/", directory=str(FRONTEND_DIR))
 ```
 
-API routes are matched first; the frontend is reached only when nothing else
-matched. One image, one origin, and no cross-site problem to solve.
+It is registered last, so API routes and the health probe are matched first
+and the interface only answers for paths nothing else claimed. One image, one
+origin, and no cross-site arrangement for a browser to negotiate.
+
+The interface is plain HTML, CSS and JavaScript today, copied into the image
+as it is, so there is no build step to run and nothing to go stale between
+the source and what ships. A frontend with a build step changes that: the
+image gains a stage that produces static files and the directory above
+becomes wherever that stage wrote them. Nothing else moves, which is the
+point of serving a directory rather than naming files.
 
 The image is built in stages, matching the pattern used by RSTUF's own
 services: dependencies resolved in a builder stage, then only the installed
 packages and the application copied into a slim final image.
 
 ```
-frontend build ─┐
-                ├─►  one image  ─►  ghcr.io  ─►  Helm chart  ─►  rstuf-demo
-backend       ──┘
+frontend ─┐
+          ├─►  one image  ─►  ghcr.io  ─►  Helm chart  ─►  rstuf-demo
+backend  ─┘
 ```
+
+Cross-origin access is off by default and exists for one case: a frontend
+development server answers on a port of its own, which a browser treats as
+another site. `RSTUF_CORS_ORIGINS` names the origins allowed to call the API,
+and no credentials are permitted across them. Every route is a GET and none
+reads a cookie, and it is that pairing, a permitted origin together with
+credentials, that would let another site act as a visitor.
 
 ---
 
@@ -552,23 +615,53 @@ read-only and unauthenticated, like the repository it displays.
 
 ## 11. Layout
 
+Folders are named for what a module does, so the order they may call each
+other in falls out of the names. Handlers map requests onto services;
+services hold the rules; repositories and the client reach outside the
+process; DTOs know nothing about any of it.
+
 ```
 backend/
 ├── app/
-│   ├── main.py          builds the application, serves the frontend
-│   ├── config.py        settings, read once at startup
-│   ├── cache.py         short-lived reuse of built responses
-│   ├── api/routes.py    the endpoints
-│   ├── tuf/
-│   │   ├── fetcher.py   our network layer
-│   │   ├── trust.py     owns the library's client
-│   │   └── read.py      checked files → responses
-│   ├── rstuf/client.py  the read-only API calls
-│   └── models/schemas.py the response shapes
-├── scripts/             generates local test repositories
+│   ├── main.py             assembles the application, serves the frontend
+│   ├── config.py           settings, read once at startup
+│   ├── handlers/           one module per subject, plus the URL patterns
+│   │   ├── health.py       /healthz
+│   │   ├── metadata.py     the repository, its roles, and their bytes
+│   │   ├── artifacts.py    the bins, and what they hold
+│   │   ├── roots.py        root's history
+│   │   └── status.py       what the RSTUF API reports
+│   ├── middleware/
+│   │   ├── logging.py      one line per request, and where metrics attach
+│   │   └── auth.py         where authentication attaches; nothing enforced
+│   ├── services/
+│   │   ├── visualizer_service.py  what a request needs, and what happens first
+│   │   ├── presenters.py   checked metadata → response shapes
+│   │   └── cache_service.py       short-lived reuse, single-flight on a miss
+│   ├── repositories/
+│   │   └── root_repository.py     older roots, fetched and checked
+│   ├── client/
+│   │   ├── tuf_client.py   owns the library's client and the trust anchor
+│   │   └── rstuf_api_client.py    the read-only API calls
+│   └── dto/schemas.py      the response shapes
+├── scripts/                generates local test repositories
 └── tests/
-frontend/                built at image time, served by the backend
+    ├── base.py             UnitTestCase, RepositoryTestCase
+    ├── unit/               reaches nothing outside the process
+    └── integration/        real keys, real signatures, real HTTP
+frontend/                   served by the backend, same origin
 ```
+
+`presenters.py` sits under `services/` rather than `repositories/` on
+purpose. It fetches nothing and reads no source; it turns metadata the client
+already verified into the shapes above. Filing it as a repository would name
+it after something it does not do.
+
+`visualizer_service.py` is one class rather than several. The cache and its
+per-key lock are state on that object, and they are what stops two
+verification passes writing the same trust directory at once. Splitting it
+would mean several locks guarding one directory, which no test running
+sequentially would catch.
 
 ---
 
@@ -585,10 +678,26 @@ Development therefore exercises the real path rather than a shortcut, and the
 compose file that starts the server doubles as the reference for how an
 operator puts a server in front of their own storage.
 
-Tests that need the TUF client skip themselves where the platform cannot
-support it, and state why, so a green run never hides a gap. The whole suite
-passes on Linux, which is where the service actually runs; on Windows the six
-client tests skip and the rest pass.
+The suite is split by what each test is allowed to touch. Unit tests reach
+nothing outside the process, so they run anywhere in under a second and a
+failure names one module. Integration tests drive those generated
+repositories and let python-tuf verify them, which is the only way to know a
+signature checks out.
+
+```
+tests/unit           38 tests, under a second
+tests/integration    53 tests, real keys and real signatures
+```
+
+The integration tests skip themselves where the platform cannot support them,
+and say why, so a green run never hides a gap. On Windows all 53 skip: the
+library caches its trust anchor behind a symbolic link, which Windows refuses
+without Developer Mode. `make test-docker` runs the whole suite on Linux,
+which is both where the service runs and what CI checks.
+
+That gap is not academic. A defect in the reported age of a reading sat
+undetected because the test covering it was one of the ones skipping locally,
+and it surfaced the first time the full suite ran.
 
 Verified end to end against a local URL, with the client pointed at
 `http://127.0.0.1:PORT/` and no API in the path:
@@ -618,3 +727,14 @@ as a failure.
 **No metrics yet.** The service logs but does not export counters. Every
 request passes one middleware stack, so metrics attach there later without
 touching a route.
+
+**The library's transport.** Timeouts and retries against storage are
+python-tuf's defaults, not ours. `FetcherInterface` is where a replacement
+would go, and a deployment behind a gateway that needs particular headers is
+the thing that would ask for one. Our own timeout does bound the two files
+this service fetches itself.
+
+**No authentication.** Deliberate: the service is read-only and the metadata
+it displays is published. `middleware/auth.py` names the seam and enforces
+nothing, which is the honest state to leave it in until write operations
+exist.

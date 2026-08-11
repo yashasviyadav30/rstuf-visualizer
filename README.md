@@ -52,7 +52,8 @@ it.
 | `/api/v1/roles/{role}` | one role's keys, signatures and expiry |
 | `/api/v1/roles/{role}/raw` | the bytes that role was verified from |
 | `/api/v1/roots` | how root reached its current version, rotation by rotation |
-| `/api/v1/artifacts` | the artifacts the repository vouches for, searchable |
+| `/api/v1/artifacts/bins` | every role holding artifacts, and how many each holds |
+| `/api/v1/artifacts` | the artifacts themselves, one bin at a time or searched |
 | `/api/v1/status` | what the RSTUF API reports, when one is configured |
 | `/healthz` | that the process is alive, and nothing about the repository |
 
@@ -65,6 +66,7 @@ it.
 | `RSTUF_API_URL` | no | RSTUF API base URL; unset hides the status panel |
 | `RSTUF_CACHE_TTL_SECONDS` | no | response reuse window, default 30 |
 | `RSTUF_REQUEST_TIMEOUT_SECONDS` | no | upstream request ceiling, default 10 |
+| `RSTUF_CORS_ORIGINS` | no | comma-separated origins allowed to call the API from a browser; empty, and unnecessary, when the interface is served from this process |
 
 ## Container image
 
@@ -136,9 +138,21 @@ against genuine signatures.
 ## Tests
 
 ```bash
-cd backend
-pytest
+make setup    # install both halves
+make test     # run everything
 ```
+
+The suite is split by what each test is allowed to touch:
+
+| Command | Runs |
+|---|---|
+| `make test-unit` | 38 tests that reach nothing outside the process, in under a second |
+| `make test-integration` | 53 tests driven against repositories built with real keys |
+| `make test-docker` | the whole suite on Linux, where nothing skips |
+
+The integration tests skip themselves on Windows, because `python-tuf`
+caches its trust anchor behind a symbolic link and Windows refuses that
+without Developer Mode. `make test-docker` is the way to see them run.
 
 ## Continuous integration
 
@@ -155,17 +169,24 @@ relocking fails the build rather than quietly resolving to something else.
 
 ## Layout
 
+Folders are named for what a module does, so the order they may call each
+other in follows from the names.
+
 ```
 backend/
 ├── app/
-│   ├── main.py          application entry point
+│   ├── main.py          assembles the application
 │   ├── config.py        settings read from the environment
-│   ├── api/             HTTP endpoints
-│   ├── tuf/             metadata fetching and verification
-│   ├── rstuf/           read-only calls to the RSTUF API
-│   └── models/          response schemas
+│   ├── handlers/        one module per subject; HTTP in, service call out
+│   ├── middleware/      request logging, and where authentication attaches
+│   ├── services/        the rules, the presenters, and the cache
+│   ├── repositories/    reading older roots
+│   ├── client/          the TUF client and the RSTUF API
+│   └── dto/             the response shapes
 ├── scripts/             development utilities
 └── tests/
+    ├── unit/            reaches nothing outside the process
+    └── integration/     real keys, real signatures
 frontend/                the interface, served by the backend
 charts/rstuf-visualizer/ the Helm chart
 Dockerfile               builds both halves into one image
