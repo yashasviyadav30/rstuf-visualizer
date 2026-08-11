@@ -2,46 +2,20 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Tests for metadata fetching and verification."""
+"""Fetching and verifying a repository, against real signatures."""
 
 from __future__ import annotations
 
-import base64
 from pathlib import Path
 
 import pytest
 
-from app.client.tuf_client import (
-    MetadataUnavailableError,
-    load_repository,
-    resolve_trusted_root,
-)
+from app.client.tuf_client import MetadataUnavailableError, load_repository
 from app.dto.schemas import RoleStatus
-from tests.conftest import requires_fixtures, requires_symlinks
+from tests.base import RepositoryTestCase
 
 
-class TestResolveTrustedRoot:
-    def test_decodes_inline_metadata(self) -> None:
-        payload = b'{"signed": {"_type": "root"}}'
-
-        resolved = resolve_trusted_root(base64.b64encode(payload).decode())
-
-        assert resolved == payload
-
-    def test_rejects_input_that_is_not_base64(self) -> None:
-        with pytest.raises(ValueError, match="base64"):
-            resolve_trusted_root("this is not base64!")
-
-    def test_reports_an_unreachable_url(self) -> None:
-        pointer = base64.b64encode(b"http://127.0.0.1:1/root.json").decode()
-
-        with pytest.raises(MetadataUnavailableError):
-            resolve_trusted_root(pointer, timeout=0.5)
-
-
-@requires_fixtures
-@requires_symlinks
-class TestLoadRepository:
+class TestLoadRepository(RepositoryTestCase):
     @pytest.mark.asyncio
     async def test_accepts_a_valid_repository(
         self, tmp_path: Path, serve_fixture, bootstrap_root

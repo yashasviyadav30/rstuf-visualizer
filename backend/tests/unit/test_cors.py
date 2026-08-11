@@ -9,6 +9,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from tests.base import UnitTestCase
 
 DEV_SERVER = "http://localhost:5173"
 ALLOW_ORIGIN = "access-control-allow-origin"
@@ -19,7 +20,7 @@ def _client(monkeypatch, origins: str) -> TestClient:
     return TestClient(create_app())
 
 
-class TestCrossOriginAccess:
+class TestCrossOriginAccess(UnitTestCase):
     """The shipped arrangement needs none of this.
 
     The interface is served from the same process as the API, so a browser

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.dto.schemas import ExpiryBand
 from app.services.presenters import expiry_band
+from tests.base import UnitTestCase
 
 NOW = datetime(2026, 8, 4, 12, 0, tzinfo=timezone.utc)
 
@@ -18,7 +19,7 @@ def at(**delta: float) -> datetime:
     return NOW + timedelta(**delta)
 
 
-class TestExpiryBand:
+class TestExpiryBand(UnitTestCase):
     def test_a_lapsed_role_is_expired(self) -> None:
         band, phrase = expiry_band(at(hours=-3), NOW)
 

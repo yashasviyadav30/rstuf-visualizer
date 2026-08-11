@@ -16,16 +16,11 @@ from app.config import Settings
 from app.main import app
 from app.services import visualizer_service as service_module
 from app.services.visualizer_service import VisualizerService, get_service
-from tests.conftest import (
-    FIXTURE_ROOT,
-    requires_fixtures,
-    requires_symlinks,
-)
+from tests.base import RepositoryTestCase
+from tests.conftest import FIXTURE_ROOT
 
 
-@requires_fixtures
-@requires_symlinks
-class TestOverview:
+class TestOverview(RepositoryTestCase):
     def test_describes_a_valid_repository(self, visualizer) -> None:
         body = visualizer("good").get("/api/v1/overview").json()
 
@@ -94,9 +89,7 @@ class TestOverview:
         assert "signed by" in body["verification_error"]
 
 
-@requires_fixtures
-@requires_symlinks
-class TestRoleDetail:
+class TestRoleDetail(RepositoryTestCase):
     def test_opens_a_top_level_role(self, visualizer) -> None:
         body = visualizer("good").get("/api/v1/roles/root").json()
 
@@ -135,9 +128,7 @@ class TestRoleDetail:
         assert response.status_code in (404, 422)
 
 
-@requires_fixtures
-@requires_symlinks
-class TestArtifacts:
+class TestArtifacts(RepositoryTestCase):
     def test_lists_artifacts_from_the_delegated_roles(
         self, visualizer
     ) -> None:
@@ -336,9 +327,7 @@ class TestArtifacts:
         assert fetched == after_bins
 
 
-@requires_fixtures
-@requires_symlinks
-class TestRefresh:
+class TestRefresh(RepositoryTestCase):
     """A visible button is pressed by everyone, every time they arrive."""
 
     def test_declines_a_refresh_that_cannot_tell_it_anything_new(
@@ -398,9 +387,7 @@ class TestRefresh:
         assert first == second
 
 
-@requires_fixtures
-@requires_symlinks
-class TestStatus:
+class TestStatus(RepositoryTestCase):
     def test_says_so_when_no_rstuf_api_is_configured(self, visualizer) -> None:
         """Status is helpful, not load-bearing, so its absence is stated and
         the rest of the page still works."""
@@ -410,9 +397,7 @@ class TestStatus:
         assert response.json()["available"] is False
 
 
-@requires_fixtures
-@requires_symlinks
-class TestApiUnreachable:
+class TestApiUnreachable(RepositoryTestCase):
     """The RSTUF API is advisory; the signed metadata is the evidence."""
 
     def test_still_shows_the_repository_when_the_api_is_down(

@@ -10,11 +10,12 @@ import base64
 import json
 
 from app.client.rstuf_api_client import _root_bytes
+from tests.base import UnitTestCase
 
 ROOT = {"signatures": [{"keyid": "abc", "sig": "def"}], "signed": {}}
 
 
-class TestTrustAnchorForms:
+class TestTrustAnchorForms(UnitTestCase):
     """The anchor arrives in more than one shape.
 
     A running deployment answers ``/api/v1/config/`` with the root metadata

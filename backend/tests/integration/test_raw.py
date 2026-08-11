@@ -12,12 +12,10 @@ from __future__ import annotations
 
 import json
 
-from tests.conftest import requires_fixtures, requires_symlinks
+from tests.base import RepositoryTestCase
 
 
-@requires_fixtures
-@requires_symlinks
-class TestRawMetadata:
+class TestRawMetadata(RepositoryTestCase):
     def test_the_detail_panel_says_where_to_read_the_bytes(
         self, visualizer
     ) -> None:

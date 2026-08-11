@@ -22,16 +22,15 @@ from app.config import Settings
 from app.main import app
 from app.repositories.root_repository import MAX_HISTORY
 from app.services.visualizer_service import VisualizerService, get_service
-from tests.conftest import FIXTURE_ROOT, requires_fixtures, requires_symlinks
+from tests.base import RepositoryTestCase
+from tests.conftest import FIXTURE_ROOT
 
 
 def _versions(body: dict) -> dict[int, dict]:
     return {entry["version"]: entry for entry in body["versions"]}
 
 
-@requires_fixtures
-@requires_symlinks
-class TestRootHistory:
+class TestRootHistory(RepositoryTestCase):
     def test_reads_every_version_newest_first(self, visualizer) -> None:
         body = visualizer("good").get("/api/v1/roots").json()
 
@@ -135,9 +134,7 @@ class TestRootHistory:
         )
 
 
-@requires_fixtures
-@requires_symlinks
-class TestCorruptedArchive:
+class TestCorruptedArchive(RepositoryTestCase):
     """The history check looks where an ordinary refresh does not.
 
     A client walks forward from the root it already holds, so once it has
