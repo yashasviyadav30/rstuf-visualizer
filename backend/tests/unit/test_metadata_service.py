@@ -14,8 +14,8 @@ from __future__ import annotations
 from app.client.tuf_client import RepositoryView
 from app.config import Settings
 from app.dto.schemas import RepositoryState
-from app.services import visualizer_service as service_module
-from app.services.visualizer_service import VisualizerService
+from app.services import metadata_service as service_module
+from app.services.metadata_service import MetadataService
 from tests.base import UnitTestCase
 
 
@@ -33,8 +33,8 @@ class _StubApi:
 
 def _service(
     api_url: str | None = "http://rstuf.example",
-) -> VisualizerService:
-    return VisualizerService(
+) -> MetadataService:
+    return MetadataService(
         Settings(metadata_url="http://metadata.example/", api_url=api_url)
     )
 
@@ -107,7 +107,7 @@ class TestRefreshLimit(UnitTestCase):
     """
 
     @staticmethod
-    def _counting_service(monkeypatch) -> tuple[VisualizerService, list[int]]:
+    def _counting_service(monkeypatch) -> tuple[MetadataService, list[int]]:
         service = _service(api_url=None)
         passes: list[int] = []
 

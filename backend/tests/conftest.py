@@ -24,7 +24,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import app
-from app.services.visualizer_service import VisualizerService, get_service
+from app.services.metadata_service import MetadataService, get_metadata_service
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_ROOT = BACKEND_ROOT / "fixtures"
@@ -159,9 +159,9 @@ def visualizer(tmp_path: Path, serve_fixture) -> Iterator[object]:
             trusted_root=base64.b64encode(anchor).decode(),
             api_url=None,
         )
-        service = VisualizerService(settings)
+        service = MetadataService(settings)
         service._trust_dir = tmp_path / variant
-        app.dependency_overrides[get_service] = lambda: service
+        app.dependency_overrides[get_metadata_service] = lambda: service
         return TestClient(app)
 
     yield _client

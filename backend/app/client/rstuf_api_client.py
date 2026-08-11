@@ -72,7 +72,7 @@ class RepositoryStatus:
     message: str | None = None
 
 
-class RstufClient:
+class RstufApiClient:
     """A small client for the handful of endpoints this service reads."""
 
     def __init__(self, base_url: str, timeout: float = 10.0) -> None:

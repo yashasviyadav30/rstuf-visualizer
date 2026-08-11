@@ -11,10 +11,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.client.tuf_client import MetadataUnavailableError
 from app.dto.schemas import RootsResponse
 from app.repositories.root_repository import DEFAULT_HISTORY, MAX_HISTORY
-from app.services.visualizer_service import (
+from app.services.metadata_service import (
+    MetadataService,
     TrustAnchorMissingError,
-    VisualizerService,
-    get_service,
+    get_metadata_service,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
@@ -28,7 +28,7 @@ async def roots(
         le=MAX_HISTORY,
         description="How many versions back to walk, newest first",
     ),
-    service: VisualizerService = Depends(get_service),
+    service: MetadataService = Depends(get_metadata_service),
 ) -> RootsResponse:
     """Show how root reached its current version.
 

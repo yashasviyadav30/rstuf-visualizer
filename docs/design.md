@@ -627,7 +627,8 @@ backend/
 │   ├── config.py           settings, read once at startup
 │   ├── handlers/           one module per subject, plus the URL patterns
 │   │   ├── health.py       /healthz
-│   │   ├── metadata.py     the repository, its roles, and their bytes
+│   │   ├── overview.py     the whole repository in one answer
+│   │   ├── roles.py        one role, and the bytes it was verified from
 │   │   ├── artifacts.py    the bins, and what they hold
 │   │   ├── roots.py        root's history
 │   │   └── status.py       what the RSTUF API reports
@@ -635,7 +636,7 @@ backend/
 │   │   ├── logging.py      one line per request, and where metrics attach
 │   │   └── auth.py         where authentication attaches; nothing enforced
 │   ├── services/
-│   │   ├── visualizer_service.py  what a request needs, and what happens first
+│   │   ├── metadata_service.py    what a request needs, and what happens first
 │   │   ├── presenters.py   checked metadata → response shapes
 │   │   └── cache_service.py       short-lived reuse, single-flight on a miss
 │   ├── repositories/
@@ -657,7 +658,7 @@ purpose. It fetches nothing and reads no source; it turns metadata the client
 already verified into the shapes above. Filing it as a repository would name
 it after something it does not do.
 
-`visualizer_service.py` is one class rather than several. The cache and its
+`metadata_service.py` is one class rather than several. The cache and its
 per-key lock are state on that object, and they are what stops two
 verification passes writing the same trust directory at once. Splitting it
 would mean several locks guarding one directory, which no test running

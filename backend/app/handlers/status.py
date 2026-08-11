@@ -9,14 +9,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.dto.schemas import StatusResponse
-from app.services.visualizer_service import VisualizerService, get_service
+from app.services.metadata_service import MetadataService, get_metadata_service
 
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
 
 
 @router.get("/status", response_model=StatusResponse)
 async def status(
-    service: VisualizerService = Depends(get_service),
+    service: MetadataService = Depends(get_metadata_service),
 ) -> StatusResponse:
     """Report what the RSTUF API says, and say so when it says nothing.
 

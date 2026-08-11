@@ -20,7 +20,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import cors_origins
-from app.handlers import artifacts, health, metadata, roots, status
+from app.handlers import artifacts, health, overview, roles, roots, status
 from app.middleware.logging import RequestLogMiddleware
 
 # The image keeps the layout of the source tree, so the interface sits beside
@@ -46,7 +46,8 @@ def create_app() -> FastAPI:
     # Health first, because a probe must be answerable whatever else is
     # wrong. The rest are grouped by subject and all sit under /api/v1.
     application.include_router(health.router)
-    application.include_router(metadata.router)
+    application.include_router(overview.router)
+    application.include_router(roles.router)
     application.include_router(roots.router)
     application.include_router(artifacts.router)
     application.include_router(status.router)

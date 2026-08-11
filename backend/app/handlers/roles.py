@@ -2,46 +2,29 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""The repository, its roles, and the bytes behind them."""
+"""One role at a time, and the bytes it was verified from."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Response
 
 from app.client.tuf_client import MetadataUnavailableError
-from app.dto.schemas import OverviewResponse, RoleDetailResponse
+from app.dto.schemas import RoleDetailResponse
 from app.handlers.validation import ROLE_NAME
-from app.services.visualizer_service import (
+from app.services.metadata_service import (
+    MetadataService,
     TrustAnchorMissingError,
     UnknownRoleError,
-    VisualizerService,
-    get_service,
+    get_metadata_service,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
 
 
-@router.get("/overview", response_model=OverviewResponse)
-async def overview(
-    refresh: bool = Query(
-        default=False,
-        description="Discard the cached result and check the repository now",
-    ),
-    service: VisualizerService = Depends(get_service),
-) -> OverviewResponse:
-    """Describe the repository: its roles, their state, and the tree."""
-    try:
-        return await service.overview(refresh=refresh)
-    except TrustAnchorMissingError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except MetadataUnavailableError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-
 @router.get("/roles/{role}", response_model=RoleDetailResponse)
 async def role_detail(
     role: str = Path(pattern=ROLE_NAME, description="Role name"),
-    service: VisualizerService = Depends(get_service),
+    service: MetadataService = Depends(get_metadata_service),
 ) -> RoleDetailResponse:
     """Open one role.
 
@@ -65,7 +48,7 @@ async def role_detail(
 @router.get("/roles/{role}/raw", response_class=Response)
 async def role_raw(
     role: str = Path(pattern=ROLE_NAME, description="Role name"),
-    service: VisualizerService = Depends(get_service),
+    service: MetadataService = Depends(get_metadata_service),
 ) -> Response:
     """Serve the bytes one role was verified from.
 

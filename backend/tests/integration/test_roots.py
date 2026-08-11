@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import app
 from app.repositories.root_repository import MAX_HISTORY
-from app.services.visualizer_service import VisualizerService, get_service
+from app.services.metadata_service import MetadataService, get_metadata_service
 from tests.base import RepositoryTestCase
 from tests.conftest import FIXTURE_ROOT
 
@@ -157,9 +157,9 @@ class TestCorruptedArchive(RepositoryTestCase):
             trusted_root=base64.b64encode(anchor).decode(),
             api_url=None,
         )
-        service = VisualizerService(settings)
+        service = MetadataService(settings)
         service._trust_dir = tmp_path / "trust"
-        app.dependency_overrides[get_service] = lambda: service
+        app.dependency_overrides[get_metadata_service] = lambda: service
 
         try:
             client = TestClient(app)

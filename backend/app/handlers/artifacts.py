@@ -11,10 +11,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.client.tuf_client import MetadataUnavailableError
 from app.dto.schemas import ArtifactBinsResponse, ArtifactsResponse
 from app.handlers.validation import OPTIONAL_ROLE_NAME
-from app.services.visualizer_service import (
+from app.services.metadata_service import (
+    MetadataService,
     TrustAnchorMissingError,
-    VisualizerService,
-    get_service,
+    get_metadata_service,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["metadata"])
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/v1", tags=["metadata"])
 
 @router.get("/artifacts/bins", response_model=ArtifactBinsResponse)
 async def artifact_bins(
-    service: VisualizerService = Depends(get_service),
+    service: MetadataService = Depends(get_metadata_service),
 ) -> ArtifactBinsResponse:
     """Name every role holding artifacts, with how many it holds.
 
@@ -48,7 +48,7 @@ async def artifacts(
     ),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=500),
-    service: VisualizerService = Depends(get_service),
+    service: MetadataService = Depends(get_metadata_service),
 ) -> ArtifactsResponse:
     """List the artifacts the repository vouches for.
 

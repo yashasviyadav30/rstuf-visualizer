@@ -14,8 +14,8 @@ from fastapi.testclient import TestClient
 from app.client.tuf_client import MetadataUnavailableError
 from app.config import Settings
 from app.main import app
-from app.services import visualizer_service as service_module
-from app.services.visualizer_service import VisualizerService, get_service
+from app.services import metadata_service as service_module
+from app.services.metadata_service import MetadataService, get_metadata_service
 from tests.base import RepositoryTestCase
 from tests.conftest import FIXTURE_ROOT
 
@@ -414,9 +414,9 @@ class TestApiUnreachable(RepositoryTestCase):
             # Nothing listens here.
             api_url="http://127.0.0.1:9",
         )
-        service = VisualizerService(settings)
+        service = MetadataService(settings)
         service._trust_dir = tmp_path / "trust"
-        app.dependency_overrides[get_service] = lambda: service
+        app.dependency_overrides[get_metadata_service] = lambda: service
 
         try:
             client = TestClient(app)

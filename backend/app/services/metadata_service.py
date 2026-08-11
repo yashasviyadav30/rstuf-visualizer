@@ -19,7 +19,7 @@ from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 
-from app.client.rstuf_api_client import RstufClient
+from app.client.rstuf_api_client import RstufApiClient
 from app.client.tuf_client import (
     DelegatedView,
     MetadataUnavailableError,
@@ -95,7 +95,7 @@ def _trust_dir(metadata_url: str) -> Path:
     return Path(tempfile.gettempdir()) / "rstuf-visualizer" / digest
 
 
-class VisualizerService:
+class MetadataService:
     """Reads one repository, and reuses the result briefly."""
 
     def __init__(self, settings: Settings) -> None:
@@ -103,7 +103,7 @@ class VisualizerService:
         self._cache = TTLCache(settings.cache_ttl_seconds)
         self._trust_dir = _trust_dir(settings.metadata_url)
         self._rstuf = (
-            RstufClient(settings.api_url, settings.request_timeout_seconds)
+            RstufApiClient(settings.api_url, settings.request_timeout_seconds)
             if settings.api_url
             else None
         )
@@ -447,14 +447,14 @@ class VisualizerService:
 
 
 @lru_cache
-def get_service() -> VisualizerService:
+def get_metadata_service() -> MetadataService:
     """Return the shared service, built once per process."""
-    return VisualizerService(get_settings())
+    return MetadataService(get_settings())
 
 
 __all__ = [
     "TrustAnchorMissingError",
     "UnknownRoleError",
-    "VisualizerService",
-    "get_service",
+    "MetadataService",
+    "get_metadata_service",
 ]
