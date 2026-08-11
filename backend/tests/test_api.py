@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import base64
+import time
 
 from fastapi.testclient import TestClient
 
@@ -154,6 +155,66 @@ class TestArtifacts:
         assert body["total"] == declared
         assert {a["role"] for a in body["artifacts"]} == {"bins-0", "bins-1"}
 
+    def test_counts_the_artifacts_in_each_bin(self, visualizer) -> None:
+        client = visualizer("good")
+        body = client.get("/api/v1/artifacts/bins").json()
+
+        counted = {b["name"]: b["count"] for b in body["bins"]}
+        declared = {
+            name: len(client.get(f"/api/v1/roles/{name}").json()["artifacts"])
+            for name in ("bins-0", "bins-1")
+        }
+
+        assert counted == declared
+        assert body["total"] == sum(declared.values())
+        assert all(b["available"] for b in body["bins"])
+
+    def test_lists_a_bin_that_holds_nothing(self, visualizer) -> None:
+        """An empty bin still belongs on the list.
+
+        Reading a count of zero tells an operator the bin exists and holds
+        nothing, which is not what its absence would have told them.
+        """
+        client = visualizer("good")
+        named = {
+            b["name"]
+            for b in client.get("/api/v1/artifacts/bins").json()["bins"]
+        }
+        delegated = {
+            d["name"]
+            for d in client.get("/api/v1/overview").json()["delegated"]
+        }
+
+        assert named == delegated
+
+    def test_narrows_to_one_bin(self, visualizer) -> None:
+        body = (
+            visualizer("good")
+            .get(
+                "/api/v1/artifacts",
+                params={"role": "bins-1", "page_size": 500},
+            )
+            .json()
+        )
+
+        assert body["total"] > 0
+        assert {a["role"] for a in body["artifacts"]} == {"bins-1"}
+
+    def test_an_unknown_bin_holds_nothing(self, visualizer) -> None:
+        """Asking for a role that lists no artifacts is not an error.
+
+        The caller asked a question about a name; the honest answer is that
+        nothing matches it, the same as a search that finds nothing.
+        """
+        body = (
+            visualizer("good")
+            .get("/api/v1/artifacts", params={"role": "bins-99"})
+            .json()
+        )
+
+        assert body["total"] == 0
+        assert body["artifacts"] == []
+
     def test_filters_by_search_term(self, visualizer) -> None:
         body = (
             visualizer("good")
@@ -247,6 +308,94 @@ class TestArtifacts:
 
         assert sorted(after_first) == ["bins-0", "bins-1"]
         assert fetched == after_first
+
+    def test_counting_bins_costs_nothing_once_artifacts_are_read(
+        self, visualizer, monkeypatch
+    ) -> None:
+        """The bin counts and the artifact list come from one reading.
+
+        The browser asks for both, in that order, and the second must not
+        send the storage server after every bin a second time.
+        """
+        fetched: list[str] = []
+        original = service_module.load_delegated_role
+
+        async def counted(metadata_url, view, name, timeout=10.0):
+            fetched.append(name)
+            return await original(metadata_url, view, name, timeout)
+
+        monkeypatch.setattr(service_module, "load_delegated_role", counted)
+
+        client = visualizer("good")
+        client.get("/api/v1/artifacts/bins")
+        after_bins = list(fetched)
+
+        client.get("/api/v1/artifacts", params={"role": "bins-0"})
+
+        assert sorted(after_bins) == ["bins-0", "bins-1"]
+        assert fetched == after_bins
+
+
+@requires_fixtures
+@requires_symlinks
+class TestRefresh:
+    """A visible button is pressed by everyone, every time they arrive."""
+
+    def test_declines_a_refresh_that_cannot_tell_it_anything_new(
+        self, visualizer, monkeypatch
+    ) -> None:
+        """Honouring every press would mean one verification pass per
+        visitor, while the repository itself has not moved. Its worker
+        renews metadata every few minutes, so a second reading seconds
+        later returns what is already in hand.
+        """
+        passes: list[int] = []
+        original = service_module.load_repository
+
+        async def counted(**kwargs):
+            passes.append(1)
+            return await original(**kwargs)
+
+        monkeypatch.setattr(service_module, "load_repository", counted)
+
+        client = visualizer("good")
+        client.get("/api/v1/overview")
+        client.get("/api/v1/overview", params={"refresh": "true"})
+        client.get("/api/v1/overview", params={"refresh": "true"})
+
+        assert len(passes) == 1
+
+    def test_honours_a_refresh_once_the_answer_has_aged(
+        self, visualizer, monkeypatch
+    ) -> None:
+        """Turning refresh away is a rate limit, not a refusal."""
+        passes: list[int] = []
+        original = service_module.load_repository
+
+        async def counted(**kwargs):
+            passes.append(1)
+            return await original(**kwargs)
+
+        monkeypatch.setattr(service_module, "load_repository", counted)
+        monkeypatch.setattr(service_module, "MIN_REFRESH_SECONDS", 0.0)
+
+        client = visualizer("good")
+        client.get("/api/v1/overview")
+        client.get("/api/v1/overview", params={"refresh": "true"})
+
+        assert len(passes) == 2
+
+    def test_reports_when_the_repository_was_read_not_when_asked(
+        self, visualizer
+    ) -> None:
+        """The page shows the age of its answer, so a cached reply must not
+        claim to have been checked the moment it was served."""
+        client = visualizer("good")
+        first = client.get("/api/v1/overview").json()["checked_at"]
+        time.sleep(0.05)
+        second = client.get("/api/v1/overview").json()["checked_at"]
+
+        assert first == second
 
 
 @requires_fixtures

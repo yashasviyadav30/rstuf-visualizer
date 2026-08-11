@@ -19,6 +19,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 
 from app.models.schemas import (
+    ArtifactBinsResponse,
     ArtifactsResponse,
     OverviewResponse,
     RoleDetailResponse,
@@ -41,6 +42,10 @@ v1 = APIRouter(prefix="/api/v1", tags=["metadata"])
 # constrained here rather than trusted. This also rejects path traversal
 # before any of our own code runs.
 ROLE_NAME = r"^[A-Za-z0-9._-]{1,128}$"
+
+# The same name, or nothing at all. Used where narrowing to a role is optional
+# and an empty value means "every role", which the pattern above would reject.
+OPTIONAL_ROLE_NAME = r"^$|^[A-Za-z0-9._-]{1,128}$"
 
 
 @router.get("/healthz", tags=["ops"])
@@ -148,9 +153,32 @@ async def roots(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@v1.get("/artifacts/bins", response_model=ArtifactBinsResponse)
+async def artifact_bins(
+    service: VisualizerService = Depends(get_service),
+) -> ArtifactBinsResponse:
+    """Name every role holding artifacts, with how many it holds.
+
+    Asked for before the artifacts themselves, so a repository split across
+    two hundred and fifty-six bins opens as a list of counts rather than as
+    a table of every package it has ever carried.
+    """
+    try:
+        return await service.artifact_bins()
+    except TrustAnchorMissingError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except MetadataUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @v1.get("/artifacts", response_model=ArtifactsResponse)
 async def artifacts(
     search: str = Query(default="", max_length=256),
+    role: str = Query(
+        default="",
+        pattern=OPTIONAL_ROLE_NAME,
+        description="Limit to one role. Omit to search across all of them",
+    ),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=500),
     service: VisualizerService = Depends(get_service),
@@ -162,7 +190,7 @@ async def artifacts(
     """
     try:
         return await service.artifacts(
-            search=search, page=page, page_size=page_size
+            search=search, role=role, page=page, page_size=page_size
         )
     except TrustAnchorMissingError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

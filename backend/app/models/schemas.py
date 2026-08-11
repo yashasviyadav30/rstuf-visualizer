@@ -178,6 +178,32 @@ class ArtifactsResponse(BaseModel):
     )
 
 
+class BinSummary(BaseModel):
+    """One role that holds artifacts, and how many it holds."""
+
+    name: str
+    count: int
+    available: bool = Field(
+        default=True,
+        description=(
+            "False when the role could not be read. Its count is then 0, "
+            "which is not the same as the role being empty"
+        ),
+    )
+
+
+class ArtifactBinsResponse(BaseModel):
+    """Every role holding artifacts, so the browser can open one at a time.
+
+    The interface asks for this before it asks for artifacts, which is what
+    keeps a repository of two hundred bins from sending two hundred bins to
+    draw one screen.
+    """
+
+    total: int
+    bins: list[BinSummary] = Field(default_factory=list)
+
+
 class StatusResponse(BaseModel):
     """Live repository status, taken from the RSTUF API."""
 

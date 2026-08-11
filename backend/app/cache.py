@@ -44,6 +44,19 @@ class TTLCache:
             return False, None
         return True, value
 
+    def age(self, key: str) -> float | None:
+        """Seconds since ``key`` was stored, or ``None`` if it is not held.
+
+        Two callers want this. A refresh is worth honouring only when the
+        answer in hand is old enough for a new one to differ, and the page
+        reports when the repository was last read rather than when the
+        response was assembled.
+        """
+        entry = self._entries.get(key)
+        if entry is None:
+            return None
+        return time.monotonic() - entry[0]
+
     def _prune(self) -> None:
         """Drop what has gone stale, so the process does not grow.
 

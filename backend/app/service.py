@@ -14,6 +14,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import tempfile
+from collections import Counter
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
@@ -21,8 +23,10 @@ from pathlib import Path
 from app.cache import TTLCache
 from app.config import Settings, get_settings
 from app.models.schemas import (
+    ArtifactBinsResponse,
     ArtifactsResponse,
     ArtifactSummary,
+    BinSummary,
     OverviewResponse,
     RepositoryState,
     RoleDetailResponse,
@@ -50,6 +54,13 @@ OVERVIEW_KEY = "overview"
 # to hide the round trips, few enough that a repository with two hundred and
 # fifty-six bins does not arrive at the storage server all at the same moment.
 DELEGATED_FETCH_LIMIT = 8
+
+# How recently the repository must have been read for a refresh to be turned
+# away. A visible button gets pressed by everyone who opens the page, every
+# time, so the cache only survives if the server declines the ones that cannot
+# tell it anything new. The repository's own worker renews metadata every few
+# minutes, so nothing is lost by declining a second look after five seconds.
+MIN_REFRESH_SECONDS = 5.0
 
 _NOT_READY_MESSAGES = {
     RepositoryState.NOT_INITIALISED: (
@@ -158,10 +169,29 @@ class VisualizerService:
         )
 
     async def view(self, refresh: bool = False) -> RepositoryView:
-        """Return a verified view, reusing a recent one unless asked not to."""
+        """Return a verified view, reusing a recent one unless asked not to.
+
+        A refresh only counts when the answer in hand is old enough that a
+        new one could differ. Everyone who opens the page presses that button,
+        and honouring every press would mean a full verification pass per
+        visitor while the repository itself has not moved.
+        """
         if refresh:
-            self._cache.clear()
+            age = self._cache.age(OVERVIEW_KEY)
+            if age is None or age >= MIN_REFRESH_SECONDS:
+                self._cache.clear()
         return await self._cache.get_or_build(OVERVIEW_KEY, self._load)
+
+    def _checked_at(self) -> datetime:
+        """When the repository was last read, not when this reply was built.
+
+        The page reports the age of its answer, so it has to come from the
+        cache rather than the clock, or a cached response would claim to have
+        been checked the moment it was served.
+        """
+        now = datetime.now(timezone.utc)
+        age = self._cache.age(OVERVIEW_KEY)
+        return now if age is None else now - timedelta(seconds=age)
 
     async def overview(self, refresh: bool = False) -> OverviewResponse:
         """Describe the repository for the first render."""
@@ -172,7 +202,9 @@ class VisualizerService:
             )
 
         view = await self.view(refresh=refresh)
-        return read.build_overview(view, state)
+        overview = read.build_overview(view, state)
+        overview.checked_at = self._checked_at().isoformat()
+        return overview
 
     @staticmethod
     def _is_top_level(view: RepositoryView, name: str) -> bool:
@@ -318,27 +350,72 @@ class VisualizerService:
         collected.sort(key=lambda item: item.path)
         return collected, unavailable
 
-    async def artifacts(
-        self, search: str = "", page: int = 1, page_size: int = 50
-    ) -> ArtifactsResponse:
-        """Return one page of the repository's artifacts.
+    async def _artifact_index(
+        self, view: RepositoryView
+    ) -> tuple[list[ArtifactSummary], list[str]]:
+        """Every artifact in the repository, read once and kept.
 
-        The gathered list is kept against the version of snapshot it was read
-        from, because snapshot pins every delegated role. Turning a page or
-        typing in the search box therefore reads what is already in hand,
-        instead of asking the storage server for every bin again.
+        Held against the version of snapshot it was read from, because
+        snapshot pins every delegated role: a change to any bin moves that
+        number. Counting bins, opening one, searching and turning pages all
+        read this, so only the first of them asks the storage server.
         """
-        view = await self.view()
         snapshot = view.documents.get("snapshot")
         version = getattr(snapshot.signed, "version", 0) if snapshot else 0
-
-        collected, unavailable = await self._cache.get_or_build(
+        return await self._cache.get_or_build(
             f"artifacts:{version}", lambda: self._gather_artifacts(view)
         )
 
+    async def artifact_bins(self) -> ArtifactBinsResponse:
+        """Name every role holding artifacts, with how many it holds.
+
+        The browser asks for this before asking for artifacts, so a
+        repository of two hundred and fifty-six bins costs one screen of
+        counts rather than a table nobody can read.
+        """
+        view = await self.view()
+        collected, unavailable = await self._artifact_index(view)
+
+        counts = Counter(item.role for item in collected)
+        # Delegated roles that hold nothing still belong on the list. An
+        # operator reading "0" learns the bin exists and is empty, which is
+        # not what its absence would have told them.
+        names = sorted(set(view.delegated) | set(counts) | set(unavailable))
+
+        return ArtifactBinsResponse(
+            total=len(collected),
+            bins=[
+                BinSummary(
+                    name=name,
+                    count=counts.get(name, 0),
+                    available=name not in unavailable,
+                )
+                for name in names
+            ],
+        )
+
+    async def artifacts(
+        self,
+        search: str = "",
+        role: str = "",
+        page: int = 1,
+        page_size: int = 50,
+    ) -> ArtifactsResponse:
+        """Return one page of artifacts, from one role or from all of them.
+
+        Narrowing to a role serves the bin a reader has just opened; leaving
+        it empty serves a search, which has to span every bin because a name
+        gives no clue which one holds it.
+        """
+        view = await self.view()
+        collected, unavailable = await self._artifact_index(view)
+
+        if role:
+            # A new list each time, so the cached one is never narrowed
+            # in place and the next reader still sees everything.
+            collected = [a for a in collected if a.role == role]
         if search:
             needle = search.lower()
-            # A new list, so the cached one is never narrowed in place.
             collected = [a for a in collected if needle in a.path.lower()]
 
         start = max(0, (page - 1) * page_size)
