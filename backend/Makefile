@@ -5,7 +5,7 @@
 .PHONY: all setup test test-unit test-integration test-e2e test-docker \n	screenshots \
 	lint tests \
 	clean purge run-dev run-local stop build-dev reformat \
-	precommit coverage fixtures chart-lint help
+	coverage fixtures chart-lint help
 
 all: help
 
@@ -59,10 +59,6 @@ lint:  ## Run the linters CI runs, in the order it runs them
 
 tests:  ## Run the linters and tests in fresh environments, as CI does
 	tox -r
-
-precommit:  ## Install and run pre-commit hooks
-	pre-commit install
-	pre-commit run --all-files --show-diff-on-failure
 
 coverage:  ## Run tests with coverage
 	coverage report

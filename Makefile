@@ -8,8 +8,8 @@
 # Copying the commands up here would quietly change every one of those paths.
 
 .PHONY: all setup setup-backend setup-frontend build-frontend openapi \
-	test test-unit test-integration test-e2e test-docker lint fixtures \n	screenshots \
-	run-local help
+	test test-unit test-integration test-e2e test-docker lint fixtures \
+	screenshots precommit run-local help
 
 all: help
 
@@ -52,6 +52,12 @@ test-docker:  ## Run every test on Linux, where nothing skips
 
 lint:  ## Run the linters CI runs
 	$(MAKE) -C backend lint
+	cd frontend && npm run lint
+
+# Every hook here is also run by CI, so passing means passing there.
+precommit:  ## Install the git hooks, and run them over everything
+	pre-commit install
+	pre-commit run --all-files --show-diff-on-failure
 
 fixtures:  ## Generate the local TUF repositories used in development
 	$(MAKE) -C backend fixtures

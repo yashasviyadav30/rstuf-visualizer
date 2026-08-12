@@ -1,5 +1,5 @@
 <!--- Thanks for taking the time to fill out this pull request! -->
-<!--- Please fill in the fields below to submit a pull request. 
+<!--- Please fill in the fields below to submit a pull request.
 The more information provided, the better. -->
 
 <!---  -->

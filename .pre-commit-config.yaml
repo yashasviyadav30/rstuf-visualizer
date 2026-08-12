@@ -1,0 +1,78 @@
+﻿# Runs when you type `git commit`. If the code is misformatted, or has an
+# obvious fault, it stops the commit here rather than letting CI find it.
+#
+# This sits at the repository root rather than under backend/, because
+# pre-commit resolves paths from the root of the git repository: a config
+# living one directory down still ran against the whole tree, while only ever
+# being written for half of it. The interface and the chart were unchecked.
+#
+# Every hook below is also run by CI, so passing here means passing there.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: end-of-file-fixer
+        exclude: '^(frontend/(openapi\.json|src/api/schema\.ts)|docs/images/)'
+      - id: trailing-whitespace
+        exclude: '^(frontend/(openapi\.json|src/api/schema\.ts)|docs/images/)'
+      - id: check-yaml
+        files: '^(\.github/|charts/|compose\.yaml)'
+        # Helm templates are not YAML until they are rendered.
+        exclude: '^charts/.*/templates/'
+        # A Kubernetes manifest may hold several objects in one file.
+        args: ['--allow-multiple-documents']
+      - id: check-json
+        files: '^frontend/.*\.json$'
+
+  # --- the backend ---------------------------------------------------------
+
+  - repo: https://github.com/pycqa/flake8
+    rev: '7.3.0'
+    hooks:
+      - id: flake8
+        files: '^backend/'
+
+  - repo: https://github.com/PyCQA/isort
+    rev: '8.0.1'
+    hooks:
+      - id: isort
+        files: '^backend/'
+        args: ['--settings-path', 'backend/pyproject.toml', --check, --diff]
+
+  - repo: https://github.com/psf/black
+    rev: '26.3.1'
+    hooks:
+      - id: black
+        files: '^backend/'
+        args: [-l79, --check, --diff]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.9.4'
+    hooks:
+      - id: bandit
+        files: '^backend/app/'
+        args: ['-r', 'backend/app']
+
+  # --- the interface -------------------------------------------------------
+  #
+  # Run through npm rather than a pinned mirror, so the linter here is the one
+  # the project declares and CI installs, and there is no second version to
+  # keep in step. It needs node_modules, which `make setup` provides.
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npm --prefix frontend run lint
+        language: system
+        files: '^frontend/src/.*\.tsx?$'
+        pass_filenames: false
+
+      - id: tsc
+        name: typescript
+        entry: npm --prefix frontend run typecheck
+        language: system
+        files: '^frontend/.*\.(tsx?|json)$'
+        pass_filenames: false

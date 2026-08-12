@@ -9,6 +9,14 @@ description = "Read-only web view of a TUF repository managed by RSTUF"
 requires-python = ">=3.13"
 license = { text = "MIT" }
 
+# Read by isort whether it is run from here, as CI does, or from the
+# repository root, as the git hook does. Without known_first_party the two
+# disagree: from the root, `app` looks like a package from PyPI.
+[tool.isort]
+profile = "black"
+line_length = 79
+known_first_party = ["app", "tests"]
+
 [tool.pytest.ini_options]
 # The browser tests are deliberately not in this list, and `make test` runs
 # them as a second session.
