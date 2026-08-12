@@ -2,8 +2,8 @@
 # runs the tests, `make run-local` starts the service on this machine.
 # None of it is needed to build or ship the service; it only saves typing.
 
-.PHONY: all setup test test-unit test-integration test-e2e test-docker \n	screenshots \
-	lint tests \
+.PHONY: all setup test test-unit test-integration test-e2e test-docker \
+	screenshots lint tests \
 	clean purge run-dev run-local stop build-dev reformat \
 	coverage fixtures chart-lint help
 

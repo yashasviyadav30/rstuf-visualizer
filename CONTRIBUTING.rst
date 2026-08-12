@@ -37,4 +37,4 @@ Pull Request. Contributions may include:
 * Other related activities
 
 
-Check `README.rst <README.rst>`_ development section instructions.
+Check the `README <README.md>`_ for how to run the tests and the service.

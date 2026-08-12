@@ -7,9 +7,9 @@
 The cache exists to spare the storage server, not to hide the repository's
 current state: entries live for seconds, and asking explicitly clears them.
 
-Callers see two methods, ``get_or_build`` and ``clear``. Nothing else is
-exposed, so replacing this with a shared store such as Redis is a change to
-one file.
+Callers see three methods: ``get_or_build``, ``clear`` and ``age``.
+Nothing else is exposed, so replacing this with a shared store such as
+Redis is a change to one file.
 """
 
 from __future__ import annotations

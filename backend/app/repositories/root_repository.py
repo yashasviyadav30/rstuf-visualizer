@@ -32,7 +32,8 @@ from app.client.tuf_client import MetadataUnavailableError, fetch_within
 logger = logging.getLogger(__name__)
 
 # One root file is a few kilobytes. The cap matches the limit the client
-# applies, so a server cannot answer a history request with an endless stream.
+# applies while the body arrives, so a server cannot answer a history
+# request with an endless stream.
 ROOT_MAX_BYTES = 512_000
 
 # How far back to walk unless asked otherwise. A long-lived repository may

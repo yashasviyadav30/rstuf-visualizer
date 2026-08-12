@@ -147,10 +147,11 @@ once, one of them refreshes while the rest wait for its result behind a lock.
 However many browsers arrive together, the storage sees one fetch per cache
 window, and two refreshes never write the trust directory at the same time.
 
-Nothing here runs on a timer. The client checks expiry when it is called, and
-it is called when a browser asks and the cache has gone stale, so the work
-follows demand. A page left open therefore asks again on an interval of its
-own, which stays cheap because the cache absorbs it.
+Nothing here runs on a timer, and neither does the interface. The client
+checks expiry when it is called, and it is called when a browser asks, so the
+work follows demand. A page left open asks nothing further: what it holds is
+kept until someone presses refresh, which is the one control that says the
+answer in hand is not good enough.
 
 `refresh()` does **not** load delegated roles. Those load on demand, which
 suits a screen that only shows them when asked.
@@ -234,9 +235,6 @@ child, using public interfaces:
 result = targets.signed.get_verification_result(
     name, child.signed_bytes, child.signatures
 )
-result = targets.signed.get_verification_result(
-    name, child.signed_bytes, child.signatures
-)
 ```
 
 A role edited after signing is rejected with a message naming the shortfall,
@@ -309,12 +307,19 @@ Responses carry only the fields a screen needs, so the interface depends on a
 stable shape rather than on the metadata format.
 
 ```
-RoleSummary   name, version, expires, threshold, key_count, status
+RoleSummary   name, version, expires, expires_in, band, threshold,
+              key_count, key_names, status
 KeySummary    keyid, keyid_short, name, scheme, online, signs
 TreeEdge      parent, child
 OverviewResponse
-              state, roles[], edges[], message
+              state, status, checked_at, roles[], delegated[], edges[],
+              verification_error, message
 ```
+
+`expires` and `expires_in` sit beside each other on purpose: one is the date,
+the other the phrase built from it. The phrase is a decision about how a date
+should read, and a decision belongs on one side of the wire rather than in
+four screens.
 
 ---
 
@@ -392,9 +397,13 @@ repositories to load, the way public TUF viewers do.
 
 When the repository is not ready, one short card replaces the table:
 
-| State | Card |
+The wording is the service's, not the screen's, so one sentence explains a
+state rather than each interface inventing its own. They are in
+`metadata_service.py`.
+
+| State | What the card says |
 |---|---|
-| not set up | "Repository not set up yet" |
+| not set up | that it has not been set up, and no signed metadata exists |
 | starting | "Setting up repository" |
 | awaiting signatures | "Waiting for signatures" |
 | ready | the table and tree |
@@ -781,11 +790,15 @@ repositories and let python-tuf verify them, which is the only way to know a
 signature checks out.
 
 ```
-tests/unit           38 tests, under a second
-tests/integration    53 tests, real keys and real signatures
-tests/e2e             9 tests, a real browser on the real page
-frontend/src         11 tests, the tree layout and the header verdict
+tests/unit           reaches nothing outside the process, runs in under a second
+tests/integration    real keys, real signatures, a repository served over HTTP
+tests/e2e            a real browser, on the compiled page
+frontend/src         the layout, the verdict, and the rendering that decides
 ```
+
+Counts are deliberately not written here. They were, three times, and were
+wrong three times, because a number in prose does not move when a test is
+added. `make test` prints them.
 
 The browser tests are the only layer that knows whether anything reached a
 screen. Everything below them can pass while the page stays blank: a response

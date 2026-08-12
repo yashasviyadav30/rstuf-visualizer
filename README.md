@@ -192,9 +192,9 @@ The suite is split by what each test is allowed to touch:
 
 | Command | Runs |
 |---|---|
-| `make test-unit` | 38 tests that reach nothing outside the process, in under a second |
-| `make test-integration` | 53 tests driven against repositories built with real keys |
-| `make test-e2e` | 14 tests that open the built page in a real browser |
+| `make test-unit` | the tests that reach nothing outside the process, in under a second |
+| `make test-integration` | the tests driven against repositories built with real keys |
+| `make test-e2e` | the tests that open the built page in a real browser |
 | `make test-docker` | the whole backend suite on Linux, where nothing skips |
 | `npm run lint` (in `frontend/`) | ESLint, including the rules of hooks |
 

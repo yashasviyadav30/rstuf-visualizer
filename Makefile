@@ -31,6 +31,8 @@ openapi:  ## Refresh the schema the interface's types are generated from
 		open('../frontend/openapi.json','w'), indent=2)"
 	cd frontend && npm run types
 
+# Prints what it ran. Counts written into prose go stale the next time a
+# test is added, which they did, three times.
 test:  ## Run every test, both halves
 	$(MAKE) -C backend test
 	cd frontend && npm run test
