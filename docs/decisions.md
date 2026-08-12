@@ -47,6 +47,22 @@ verified reading briefly and declines a refresh that cannot tell it anything
 new, so a second cache in front of it with its own opinions would only
 disagree with the first.
 
+## `types/` only where a page has types
+
+The layout asked for was components, endpoints, types and hooks per page.
+Three of the four pages have three of those folders, because they had nothing
+page-specific to put in the fourth: their types come from `api/types.ts`,
+generated from the backend's schema, and their components' props are used in
+one place each.
+
+`artifacts` does have one, and has the folder: the state its hook returns is
+a real contract, and the distinction it carries between "nothing matched" and
+"you have not asked yet" is the kind of thing worth naming rather than
+inferring.
+
+An empty folder on the other three would make the tree look symmetrical and
+tell a reader nothing.
+
 ## No router
 
 Four tabs, one page, and no address bar state. A router would earn its place

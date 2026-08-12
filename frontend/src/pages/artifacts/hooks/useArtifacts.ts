@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { getArtifacts, getBins } from '../endpoints/artifacts';
+import type { ArtifactPageState } from '../types/artifacts';
 
 export const PAGE_SIZE = 50;
 
@@ -29,7 +30,10 @@ export function useBins(enabled: boolean) {
  * of the old result is not a place the new one has; keeping them apart says
  * that without an effect that writes state during a render.
  */
-export function useArtifactPage(role: string | null, search: string) {
+export function useArtifactPage(
+  role: string | null,
+  search: string,
+): ArtifactPageState {
   const [pages, setPages] = useState<Record<string, number>>({});
   const key = `${role ?? ''}:${search}`;
   const page = pages[key] ?? 1;
