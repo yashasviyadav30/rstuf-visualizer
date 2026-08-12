@@ -87,6 +87,37 @@ class TestAHealthyRepository(BrowserTestCase):
         expect(detail.get_by_role("heading", name="targets")).to_be_visible()
         expect(detail.get_by_text("Download the signed file")).to_be_visible()
 
+    def test_refresh_asks_the_backend_to_check_the_repository(
+        self, page: Page, visualizer_url
+    ) -> None:
+        """The button has one job, and it is that query parameter.
+
+        Without it the backend serves the reading it already holds, the
+        screen redraws identically, and the rate limit that decides whether
+        a second look is worth taking is never reached.
+        """
+        asked: list[str] = []
+        page.on(
+            "request",
+            lambda request: (
+                asked.append(request.url)
+                if "/api/v1/overview" in request.url
+                else None
+            ),
+        )
+
+        page.goto(visualizer_url("good"))
+        expect(page.get_by_text("All healthy")).to_be_visible()
+        assert asked, "the page never asked for an overview"
+        assert (
+            "refresh=true" not in asked[0]
+        ), "the first read is not a refresh"
+
+        with page.expect_request(
+            lambda r: "refresh=true" in r.url, timeout=10000
+        ):
+            page.get_by_role("button", name="Refresh").click()
+
     def test_says_how_old_the_reading_is(
         self, page: Page, visualizer_url
     ) -> None:

@@ -24,11 +24,10 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 
-import httpx
 from tuf.api.exceptions import RepositoryError
 from tuf.api.metadata import Metadata, Root
 
-from app.client.tuf_client import MetadataUnavailableError
+from app.client.tuf_client import MetadataUnavailableError, fetch_within
 
 logger = logging.getLogger(__name__)
 
@@ -104,20 +103,14 @@ def _root_url(metadata_url: str, version: int) -> str:
 def _fetch(metadata_url: str, version: int, timeout: float) -> Metadata:
     """Retrieve one version of root, unverified."""
     url = _root_url(metadata_url, version)
-    try:
-        response = httpx.get(url, timeout=timeout)
-        response.raise_for_status()
-    except httpx.HTTPError as exc:
-        raise MetadataUnavailableError(
-            f"version {version} of root could not be fetched from {url}"
-        ) from exc
-
-    if len(response.content) > ROOT_MAX_BYTES:
-        raise MetadataUnavailableError(
-            f"version {version} of root exceeds {ROOT_MAX_BYTES} bytes"
+    return Metadata.from_bytes(
+        fetch_within(
+            url,
+            limit=ROOT_MAX_BYTES,
+            timeout=timeout,
+            what=f"version {version} of root",
         )
-
-    return Metadata.from_bytes(response.content)
+    )
 
 
 def _check(delegator: Root, child: Metadata) -> SignatureCheck:

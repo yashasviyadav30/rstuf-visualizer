@@ -131,6 +131,54 @@ def resolve_trusted_root(value: str, timeout: float = 10.0) -> bytes:
     return decoded
 
 
+# What one delegated role may weigh. The library applies the same figure to
+# targets metadata, and a bin is targets metadata; matching it means storage
+# meets one limit whichever path asked for the file.
+DELEGATED_MAX_BYTES = 5_000_000
+
+
+def fetch_within(url: str, *, limit: int, timeout: float, what: str) -> bytes:
+    """Fetch a file, and stop reading once it passes ``limit``.
+
+    Reading a whole response and then measuring it is not a limit. By the time
+    the length is known the bytes are already held, and how many there are was
+    decided by a storage server this service does not control.
+
+    The declared length is checked first, because a server that is honest
+    about being too large saves the transfer entirely. It is not trusted: the
+    body is counted as it arrives either way.
+    """
+    received = bytearray()
+    too_large = MetadataUnavailableError(
+        f"{what} is larger than the {limit} bytes this service will read"
+    )
+
+    try:
+        with httpx.stream("GET", url, timeout=timeout) as response:
+            response.raise_for_status()
+
+            declared = response.headers.get("content-length")
+            if declared is not None:
+                try:
+                    if int(declared) > limit:
+                        raise too_large
+                except ValueError:
+                    # A length that is not a number tells us nothing, and the
+                    # count below does not depend on it.
+                    pass
+
+            for chunk in response.iter_bytes():
+                received += chunk
+                if len(received) > limit:
+                    raise too_large
+    except httpx.HTTPError as exc:
+        raise MetadataUnavailableError(
+            f"{what} could not be fetched from {url}"
+        ) from exc
+
+    return bytes(received)
+
+
 def _status_for(metadata: Metadata, now: datetime) -> RoleStatus:
     """Classify a role that the client already accepted as correctly signed."""
     return (
@@ -346,15 +394,12 @@ def _fetch_delegated(
         metadata_url, name, view.delegated.get(name), consistent
     )
 
-    try:
-        response = httpx.get(url, timeout=timeout)
-        response.raise_for_status()
-    except httpx.HTTPError as exc:
-        raise MetadataUnavailableError(
-            f"could not fetch {name} from {url}"
-        ) from exc
-
-    child: Metadata = Metadata.from_bytes(response.content)
+    # Kept, because these are the bytes the parent is about to check, and
+    # the bytes this service will serve if anyone asks to see the file.
+    raw = fetch_within(
+        url, limit=DELEGATED_MAX_BYTES, timeout=timeout, what=name
+    )
+    child: Metadata = Metadata.from_bytes(raw)
 
     result = targets.signed.get_verification_result(
         name, child.signed_bytes, child.signatures
@@ -390,7 +435,7 @@ def _fetch_delegated(
         delegates_to=_delegated_names(child),
         artifacts=sorted(artifacts),
         note=note,
-        raw=response.content,
+        raw=raw,
     )
 
 
