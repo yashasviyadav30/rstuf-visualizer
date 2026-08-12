@@ -556,6 +556,12 @@ ships: no Node, no `node_modules`, no TypeScript.
 have drifted, which is the guarantee `pipenv install --deploy` gives on the
 other side.
 
+`Pipfile.lock` is generated on Linux, deliberately. Relocking on Windows
+resolves for that machine and drops what it cannot install, which quietly
+removed uvloop and the hashes the image needs; the dependency stage then
+failed on a requirement it could not pin. The file describes where the
+service runs, not where it was written.
+
 The types the interface holds the backend to are generated from the backend's
 own OpenAPI document rather than written by hand, so a field renamed on the
 server becomes a compile error in the component that reads it instead of
@@ -800,6 +806,25 @@ runs and what CI checks.
 That gap is not academic. A defect in the reported age of a reading sat
 undetected because the test covering it was one of the ones skipping locally,
 and it surfaced the first time the full suite ran.
+
+### Installed, not only rendered
+
+The chart has been installed into a `kind` cluster and asked what it saw. A
+small web server published a generated repository inside the cluster, the
+chart was installed against it, and the service answered:
+
+```
+/healthz                  {"status":"ok"}
+/api/v1/overview          "status":"valid", four roles, two delegated
+/api/v1/roots             "current":3, every rotation verified
+/api/v1/artifacts/bins    64 artifacts across two bins
+/                         the compiled interface
+helm test                 Succeeded
+```
+
+That run is what `chart.yml` performs on every change to the chart or the
+image, and it is also what found the lockfile fault above: nothing else in
+the suite builds the image.
 
 Verified end to end against a local URL, with the client pointed at
 `http://127.0.0.1:PORT/` and no API in the path:
