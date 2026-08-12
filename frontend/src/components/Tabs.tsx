@@ -4,7 +4,7 @@
 
 import { NavLink } from 'react-router';
 
-export const TABS = [
+const TABS = [
   { to: '/', label: 'Roles' },
   { to: '/roots', label: 'Root history' },
   { to: '/artifacts', label: 'Artifacts' },

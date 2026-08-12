@@ -36,10 +36,7 @@ class Caller:
 
     name: str = "anonymous"
     roles: frozenset[str] = frozenset()
-
-    @property
-    def is_anonymous(self) -> bool:
-        return self.name == "anonymous"
+    """Which roles this caller may act on. Empty is not "all of them"."""
 
 
 def current_caller() -> Caller:
