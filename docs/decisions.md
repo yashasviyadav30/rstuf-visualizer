@@ -118,11 +118,16 @@ documents.
 
 ## Not done, and why
 
-**Component tests.** Eleven tests cover the two pieces with rules worth
-testing on their own, the tree layout and the header verdict. The components
-themselves are covered end to end, in a browser, against a real repository,
-which is where a rendering fault actually shows. Per-component render tests
-would add a third layer without a third kind of failure to catch.
+**Component tests, everywhere.** Twenty-five tests cover the pieces where
+rendering is a decision rather than a translation: what the bin list says
+about a bin holding nothing against one it could not read, what the roles
+table does with a threshold it was not given, and which of two very different
+failures the error banner is reporting. Each of those is a branch that would
+otherwise only be caught by someone looking at a screen.
+
+The rest are covered end to end, in a browser, against a real repository.
+A render test for a component that renders its props unchanged asserts that
+React works.
 
 **Accessibility.** The tabs are links carrying `aria-current`, the search
 field has a label, table headers are scoped, focus is visible only to the
