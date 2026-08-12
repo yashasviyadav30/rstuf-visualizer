@@ -70,7 +70,7 @@ class TestOverview(RepositoryTestCase):
         self, visualizer
     ) -> None:
         """A repository in trouble is the subject of this service, so it is
-        described rather than reported as a server failure."""
+        described, and never reported as a server failure."""
         response = visualizer("expired").get("/api/v1/overview")
 
         assert response.status_code == 200
@@ -138,7 +138,7 @@ class TestArtifacts(RepositoryTestCase):
         ).json()
 
         # The total is what the bins between them declare, gathered by the
-        # service rather than counted here.
+        # service, not counted here.
         declared = sum(
             len(client.get(f"/api/v1/roles/{name}").json()["artifacts"])
             for name in ("bins-0", "bins-1")
@@ -236,7 +236,7 @@ class TestArtifacts(RepositoryTestCase):
         self, visualizer
     ) -> None:
         """The count and the rows describe different things, so a reader
-        given fifty rows beside a total of sixty-four needs a way to the
+        given 50 rows beside a total of 64 needs a way to the
         rest. This is the case the fixture exists to reach."""
         body = visualizer("good").get("/api/v1/artifacts").json()
 
@@ -277,7 +277,7 @@ class TestArtifacts(RepositoryTestCase):
         self, visualizer, monkeypatch
     ) -> None:
         """Every artifact lives in a delegated role, so listing them means
-        fetching each one. A repository can hold two hundred and fifty-six,
+        fetching each one. A repository can hold 256 of them,
         and turning a page must not ask the storage server for all of them
         again.
         """

@@ -61,8 +61,8 @@ export function useOverview(): OverviewState {
 /**
  * The role currently open, and how to open another.
  *
- * A delegated role is fetched when it is opened rather than at page load,
- * which is what keeps a repository of two hundred and fifty-six bins cheap to
+ * A delegated role is fetched when it is opened, never at page load,
+ * which is what keeps a repository of 256 bins cheap to
  * draw. Opening one a second time costs nothing, because the answer is held
  * against the role's name.
  */

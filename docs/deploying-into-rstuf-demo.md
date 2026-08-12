@@ -64,13 +64,13 @@ $ curl -s -o /dev/null -w "%{http_code}\n" \
 
 The bucket is created exactly as the demo's startup script creates it, with
 `awslocal s3 mb` and no bucket policy. The 404 on a key that was never
-written is there to show the 200 is the object rather than a catch-all.
+written is there to show the 200 is the object and not a catch-all.
 
 ## What this does not prove
 
 **It was not run inside the chart.** LocalStack was driven directly, so the
-address above comes from the chart's service name and port rather than from a
-cluster. Installing the demo and fetching `timestamp.json` from inside it
+address above was read off the chart's service name and port. No cluster
+has confirmed it. Installing the demo and fetching `timestamp.json` from inside it
 would settle that, and is the one test worth running before anyone relies on
 this.
 
@@ -84,7 +84,8 @@ overrides a `public-read` ACL, and then the objects are not anonymously
 readable whatever the worker wrote. That is a deliberate choice an operator
 makes. A deployment in that position needs a web server or a signed-URL proxy
 in front of the bucket, which is why `metadataUrl` in the visualizer chart is
-required and has no default rather than defaulting to a bucket address.
+required and carries no default. A bucket address as a default would be a
+guess.
 
 ## The change to rstuf-demo
 
@@ -135,7 +136,7 @@ That does mean the work cannot arrive as one change:
    version 0.1.0 to the index.
 2. **Point `rstuf-demo` at it.** The dependency resolves 0.1.0 from the index
    that now carries it, and `rstuf-demo` goes to 0.4.0, since it gains a
-   component rather than fixing one.
+   component instead of fixing one.
 
 Combined or reversed, the `ct install` job in `test.yml` fails: the demo would
 ask the index for a chart that is not in it yet.
@@ -146,7 +147,7 @@ ask the index for a chart that is not in it yet.
 `ghcr.io/repository-service-tuf/rstuf-visualizer`, which is where it belongs
 once this lives in the org, and where nothing is published today. Until then
 an install needs `--set image.repository=` pointing at wherever the image was
-built. The chart's own CI does exactly that rather than pretending otherwise.
+built. The chart's own CI does exactly that and pretends nothing.
 
 **Whether the org wants it.** That is a question about scope, not a technical
 blocker: everything needed to publish it is in the two changes above.

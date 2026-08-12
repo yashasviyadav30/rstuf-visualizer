@@ -180,7 +180,7 @@
           "metadata"
         ],
         "summary": "Role Raw",
-        "description": "Serve the bytes one role was verified from.\n\nSent as a download rather than rendered, and never as HTML, so a\nrepository cannot put script into a file this service hands to a browser.",
+        "description": "Serve the bytes one role was verified from.\n\nSent as a download, never as HTML a browser will render, so a\nrepository cannot put script into a file this service hands to a browser.",
         "operationId": "role_raw_api_v1_roles__role__raw_get",
         "parameters": [
           {
@@ -249,7 +249,7 @@
           "metadata"
         ],
         "summary": "Roots",
-        "description": "Show how root reached its current version.\n\nEach step is checked against the rule the specification sets for a\nrotation, so a version that cannot be tied to the one before it is\nreported as exactly that rather than shown as settled history.",
+        "description": "Show how root reached its current version.\n\nEach step is checked against the rule the specification sets for a\nrotation, so a version that cannot be tied to the one before it is\nreported as exactly that. Settled history it is not.",
         "operationId": "roots_api_v1_roots_get",
         "parameters": [
           {
@@ -317,7 +317,7 @@
           "metadata"
         ],
         "summary": "Artifact Bins",
-        "description": "Name every role holding artifacts, with how many it holds.\n\nAsked for before the artifacts themselves, so a repository split across\ntwo hundred and fifty-six bins opens as a list of counts rather than as\na table of every package it has ever carried.",
+        "description": "Name every role holding artifacts, with how many it holds.\n\nAsked for before the artifacts themselves, so a repository split across\n256 bins opens as a list of counts. The alternative is a table of every\npackage it has ever carried.",
         "operationId": "artifact_bins_api_v1_artifacts_bins_get",
         "responses": {
           "200": {
@@ -559,7 +559,7 @@
             },
             "type": "array",
             "title": "Unavailable",
-            "description": "Delegated roles that could not be read. Whatever they list is missing from this page, and from the total beside it, so the shortfall is named rather than left to look like an empty bin"
+            "description": "Delegated roles that could not be read. Whatever they list is missing from this page, and from the total beside it, so the shortfall is named and does not pass for an empty bin"
           }
         },
         "type": "object",
@@ -642,7 +642,7 @@
           "detail"
         ],
         "title": "ErrorResponse",
-        "description": "What every failure from this API carries.\n\nThe shape FastAPI sends for an HTTPException, named here so it appears in\nthe OpenAPI document rather than being left for a consumer to discover.\nThe message is written for a person to read."
+        "description": "What every failure from this API carries.\n\nThe shape FastAPI sends for an HTTPException, named here so it appears in\nthe OpenAPI document instead of leaving a consumer to discover it.\nThe message is written for a person to read."
       },
       "ExpiryBand": {
         "type": "string",
@@ -721,7 +721,7 @@
           "name"
         ],
         "title": "KeySummary",
-        "description": "One signing key, named rather than shown as a bare identifier."
+        "description": "One signing key, named, since a bare identifier tells nobody much."
       },
       "OverviewResponse": {
         "properties": {
@@ -889,7 +889,7 @@
           "raw_url": {
             "type": "string",
             "title": "Raw Url",
-            "description": "Where to read the bytes this role was verified from, served by this service rather than linked to the storage behind it",
+            "description": "Where to read the bytes this role was verified from, served by this service, and never linked to the storage behind it",
             "default": ""
           }
         },

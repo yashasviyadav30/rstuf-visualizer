@@ -25,7 +25,7 @@ export function OverviewPage({ overview, loading, error }: Props) {
   if (error) return <ErrorBanner error={error} />;
   if (!overview) return <p className="muted">Loading…</p>;
 
-  // A repository that has not been set up is a real state rather than a
+  // A repository that has not been set up is a real state, never a
   // failure, so one short card replaces the table instead of an error.
   if (overview.message) {
     return (

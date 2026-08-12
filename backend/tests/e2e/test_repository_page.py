@@ -18,7 +18,7 @@ import pytest
 from tests.base import BrowserTestCase
 
 # Imported through pytest so a checkout without the development dependencies
-# skips these with a reason, rather than failing to collect at all.
+# skips these with a reason, so collection does not fail outright.
 sync_api = pytest.importorskip(
     "playwright.sync_api",
     reason="pytest-playwright is a development dependency; run `make setup`",
@@ -143,7 +143,7 @@ class TestArtifacts(BrowserTestCase):
         expect(page.get_by_text("bins-0")).to_be_visible()
         expect(page.get_by_text("bins-1")).to_be_visible()
         # Nothing is read until a bin is opened, which is what keeps a
-        # repository of two hundred and fifty-six bins cheap to look at.
+        # repository of 256 bins cheap to look at.
         expect(
             page.get_by_text("Open a bin, or search across all of them.")
         ).to_be_visible()

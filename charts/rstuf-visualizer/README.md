@@ -41,7 +41,7 @@ to stand in front of the bucket.
 Supply the root you already trust through `trustedRoot`. Left unset, the
 anchor is taken from the RSTUF API instead, which is weaker: it then arrives
 from the same deployment being checked. With neither, the service reports
-that it cannot verify anything rather than showing metadata it has not
+that it can verify nothing at all. It will not show metadata it has not
 checked.
 
 ## Values

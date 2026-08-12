@@ -23,7 +23,7 @@ export PYTHONPATH="${PYTHONPATH:-$PWD}"
 # The generated repositories carry a one-day timestamp, matching how RSTUF
 # renews that role. Left alone they lapse overnight, and serving a stale one
 # would report an expiry that says nothing about the code. Freshness is
-# checked rather than existence, and all three variants are rebuilt together
+# checked, not existence, and all three variants are rebuilt together
 # so the deliberately expired one stays expired.
 repositories_are_fresh() {
     python - <<'PY'

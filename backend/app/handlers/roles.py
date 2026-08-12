@@ -61,7 +61,7 @@ async def role_raw(
 ) -> Response:
     """Serve the bytes one role was verified from.
 
-    Sent as a download rather than rendered, and never as HTML, so a
+    Sent as a download, never as HTML a browser will render, so a
     repository cannot put script into a file this service hands to a browser.
     """
     try:

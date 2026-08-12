@@ -4,12 +4,11 @@
 
 """Short-lived reuse of built responses.
 
-The cache exists to spare the storage server, not to hide the repository's
-current state: entries live for seconds, and asking explicitly clears them.
+The cache spares the storage server; it is not there to hide the state of the
+repository. Entries live for seconds and asking explicitly clears them.
 
-Callers see three methods: ``get_or_build``, ``clear`` and ``age``.
-Nothing else is exposed, so replacing this with a shared store such as
-Redis is a change to one file.
+Three methods are exposed, so putting a shared store such as Redis behind
+them is a change to one file.
 """
 
 from __future__ import annotations
@@ -25,9 +24,8 @@ class TTLCache:
 
     Without the per-key lock, a cache miss under load lets every waiting
     request rebuild the same entry: the storage server sees a burst instead
-    of one fetch, and two refreshes can write the trust directory at the same
-    moment. The lock lets the first caller build while the rest wait for its
-    result.
+    of one fetch, and two refreshes write the trust directory at the same
+    moment. The first caller builds; the rest wait for its result.
     """
 
     def __init__(self, ttl_seconds: float) -> None:

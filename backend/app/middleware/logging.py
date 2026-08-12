@@ -6,8 +6,8 @@
 
 An operator watching this service wants to know which requests arrived, what
 they were answered with, and how long the answer took. A slow response here
-usually means a slow storage server rather than slow code, and the timing is
-what separates those two.
+usually means a slow storage server, and the timing is what tells that from
+slow code.
 
 Metrics attach at this same point later. Every request already passes through
 here, so counters need no change to a route.

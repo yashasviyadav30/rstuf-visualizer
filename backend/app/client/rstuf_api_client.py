@@ -7,7 +7,7 @@
 The API answers questions the signed metadata cannot: whether the repository
 has been set up, what is waiting to be signed, and where the trust anchor
 lives. None of it is a security claim, so none of it is verified, and a
-failure here hides one panel rather than stopping the service.
+failure here hides one panel and leaves the service running.
 
 Nothing in this module writes. Changing a repository is the RSTUF API's own
 job, reached with the operator's credentials, not ours.
@@ -123,8 +123,8 @@ class RstufApiClient:
 
         Two forms are accepted. The API sends the root metadata itself, as
         JSON, while the RSTUF client's own configuration file holds it base64
-        encoded. Both are the same document, so both are read rather than one
-        being declared correct.
+        encoded. Both are the same document, so both are read; neither one is
+        declared the correct form.
         """
         value = (await self.settings()).get("trusted_root")
         if value is None:
@@ -135,8 +135,8 @@ class RstufApiClient:
         """Name the roles that still need signatures.
 
         When nothing is pending the API omits the ``data`` field entirely
-        rather than sending an empty one, so its absence is handled instead of
-        being read as a list.
+        instead of sending an empty one. Reading that absence as a list would
+        invent a signature request nobody made.
         """
         payload = await self._get("/api/v1/metadata/sign")
         if payload is None:

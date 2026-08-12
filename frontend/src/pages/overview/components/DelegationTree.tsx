@@ -41,7 +41,7 @@ interface Props {
 }
 
 /**
- * The delegation tree, drawn from the metadata rather than from a picture.
+ * The delegation tree, drawn from the metadata. No picture is shipped.
  *
  * It answers "who delegates to whom" at a glance, which the table cannot.
  */

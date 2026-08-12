@@ -46,14 +46,14 @@ export function RoleDetail({ detail, loading, error, selected }: Props) {
         <dd className={`state state--${detail.status}`}>{detail.status}</dd>
         <dt>Signatures</dt>
         {/* Both halves can be absent, and an empty number beside a real one
-            reads as zero rather than as unknown. */}
+            reads as zero when it means unknown. */}
         <dd>
           {detail.signatures_present ?? '?'} of {detail.threshold ?? '?'}{' '}
           required
         </dd>
       </dl>
 
-      {/* A role edited after signing is named with its shortfall rather than
+      {/* A role edited after signing is named with its shortfall, never
           folded into a generic failure, because which role fell short is the
           thing an operator has to act on. */}
       {detail.signature_note && (

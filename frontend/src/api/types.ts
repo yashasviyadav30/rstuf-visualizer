@@ -8,7 +8,7 @@
  * Every one of these is an alias into `schema.ts`, which is generated from the
  * backend's own OpenAPI document. Nothing here is hand-written, so a field
  * that is renamed or removed on the server becomes a compile error in the
- * components that read it, rather than `undefined` on screen.
+ * components that read it, instead of `undefined` on screen.
  *
  * Regenerate with `npm run types` after `make openapi`.
  */

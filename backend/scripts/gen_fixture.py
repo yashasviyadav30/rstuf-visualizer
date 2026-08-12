@@ -14,7 +14,7 @@ The key arrangement mirrors a real RSTUF repository: root is held offline,
 and one shared online key signs everything else. Keys carry the readable
 names RSTUF records, so the interface can show names instead of hashes.
 
-Root is published in three versions rather than one. A client is handed the
+Root is published in three versions. A client is handed the
 first and walks forward to the third, so every refresh exercises the rotation
 rule, and the history view has real changes to compare instead of a single
 version with nothing before it.
@@ -55,7 +55,7 @@ BINS = ["bins-0", "bins-1"]
 
 # Named after real packages so the artifact list reads like an index rather
 # than a placeholder. Eight packages at four versions fills each bin with
-# thirty-two, which is more than one page of the interface holds.
+# 32, which is more than one page of the interface holds.
 PACKAGES = (
     "certifi",
     "charset-normalizer",
@@ -121,7 +121,7 @@ def _root_version(
 ) -> Root:
     """Build one version of root from the keys it is meant to declare.
 
-    Each version is written out in full rather than edited from the one
+    Each version is written out in full, never edited from the one
     before, so the difference between two versions is visible in this file
     and not buried in a sequence of mutations.
     """

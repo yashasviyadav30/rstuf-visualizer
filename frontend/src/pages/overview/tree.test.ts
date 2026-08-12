@@ -57,7 +57,7 @@ describe('the delegation tree', () => {
   });
 
   it('stands every delegated role behind one node', () => {
-    // A repository may hold two hundred and fifty-six bins. Drawing each as
+    // A repository may hold 256 bins. Drawing each as
     // its own branch would hide the structure it is meant to show.
     const model = treeModel(
       overview({

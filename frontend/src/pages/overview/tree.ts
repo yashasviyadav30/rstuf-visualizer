@@ -114,8 +114,8 @@ export function edgePath(from: PlacedNode, to: PlacedNode): string {
 /**
  * Where each delegated role sits once the group is opened.
  *
- * They are laid out as a block of chips under a single connector rather than
- * as branches. One edge per bin would be two hundred and fifty-six lines
+ * They are laid out as a block of chips under a single connector instead of
+ * as branches. One edge per bin would be 256 lines
  * crossing the same gap, which hides the structure it is meant to show.
  */
 export function chipPositions(

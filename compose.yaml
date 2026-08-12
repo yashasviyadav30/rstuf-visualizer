@@ -36,7 +36,7 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     # The service writes nothing but the trust directory, so prove it here
-    # rather than only claiming it in the chart.
+    # instead of only claiming it in the chart.
     read_only: true
     tmpfs:
       - /tmp

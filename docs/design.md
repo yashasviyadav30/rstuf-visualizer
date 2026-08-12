@@ -32,12 +32,12 @@ RSTUF API; size caps and timeouts are enforced somewhere the viewer cannot
 disable them; and the response shapes stay stable while the metadata format
 moves. It is also the one place a future write path can attach.
 
-The shape that follows is a backend for frontend. This service is not a
-general API for anyone to build on; it exists to answer the questions one
-interface asks, and its responses are cut to those questions rather than
-mirroring the metadata. That is why the browser never sees a TUF structure,
-why two upstreams of different kinds sit behind one door, and why a screen
-costs one request instead of five.
+The shape that follows is a backend for frontend. This service is not a general
+API for anyone to build on; it exists to answer the questions one interface
+asks, and its responses are cut to those questions. They do not mirror the
+shape of the metadata. That is why the browser never sees a TUF structure, why
+two upstreams of different kinds sit behind one door, and why a screen costs
+one request instead of five.
 
 ---
 
@@ -58,8 +58,8 @@ of breaking it. Only `/healthz` sits at the root, because probes are
 configured once and should never move. The version prefix also keeps API
 routes cleanly apart from the frontend, which owns every other path.
 
-Set C carries the trust picture and is checked. Set B carries live status and is
-not, because status is not a security claim.
+Set C carries the trust picture and is checked. Set B carries live status and
+is not, because status is not a security claim.
 
 The division that matters: **nothing is shown that was not checked against
 something already trusted.** Set C is a plain base URL handed to the client,
@@ -68,8 +68,9 @@ never carries metadata. It answers questions the metadata cannot: whether the
 repository has been bootstrapped, what is waiting to be signed, and which
 readable name belongs to a key.
 
-Two kinds of file are fetched by calls this service writes rather than by the
-client, and both are checked before anything they contain reaches a screen:
+Two kinds of file arrive through calls this service writes. The client has no
+reason to ask for either, and both are checked before anything they contain
+reaches a screen:
 
 | File | Fetched by | Checked against |
 |---|---|---|
@@ -85,8 +86,8 @@ as failing, never shown as history or as contents.
 
 The trust anchor is the one file with nothing above it. It arrives through
 Set B, because trust cannot be bootstrapped by the files being checked, and
-the client requires those bytes to be handed to it rather than fetching them
-itself.
+the client requires those bytes to be handed to it and will not go looking
+for them.
 
 ---
 
@@ -184,13 +185,12 @@ The library's own fetcher is what runs today. Its timeouts and its retry
 behaviour are the library's, not ours.
 
 `FetcherInterface` is the seam if that has to change. A deployment behind a
-gateway needing particular headers, or one wanting request logging and
-retries on our terms rather than the library's, gets a subclass passed as
-`fetcher=`, and nothing outside this one call changes. That is worth knowing
-about and worth not building until something asks for it: the default
-fetcher's behaviour has been adequate against every repository this has been
-run against, and a replacement is code that would have to be maintained
-against a library that already ships one.
+gateway needing particular headers, or one wanting request logging and retries
+on our own terms, gets a subclass passed as `fetcher=`, and nothing outside
+this one call changes. That is worth knowing about and worth not building until
+something asks for it: the default fetcher's behaviour has been adequate
+against every repository this has been run against, and a replacement is code
+that would have to be maintained against a library that already ships one.
 
 Our own timeout does apply to the two files this service fetches itself, the
 delegated roles and the older roots, because those go through `httpx` calls
@@ -213,7 +213,7 @@ is downloaded to learn this, and no role name appears in our code.
 
 That rule is **`succinct_roles`, which comes from
 [TAP 15](https://github.com/theupdateframework/taps/blob/master/tap15.md)
-rather than from the specification itself.** The distinction is worth keeping
+and not from the specification itself.** The distinction is worth keeping
 straight. The specification's own hash-bin mechanism is `path_hash_prefixes`,
 where every delegated role is written out by name in the parent's
 `delegations`. TAP 15 replaces that list with a rule: `2^bit_length` bins,
@@ -221,7 +221,7 @@ each named by a prefix and a zero-padded hex index, all sharing one set of
 keys and one threshold, and each terminating.
 
 RSTUF publishes `succinct_roles`, and python-tuf implements it, which is why
-two hundred and fifty-six bins cost nothing to name here. Code that reads
+256 bins cost nothing to name here. Code that reads
 `delegations.roles` instead finds an empty list against a real RSTUF
 repository. Both forms are handled, because a repository is free to use
 either.
@@ -241,7 +241,7 @@ A role edited after signing is rejected with a message naming the shortfall,
 for example `bins-0 was signed by 0/1 keys`. A role that verifies yields its
 artifact list: path, length, and hashes.
 
-A failing delegated role is reported on its own rather than sinking the rest.
+A failing delegated role is reported on its own and does not sink the rest.
 Bins are siblings, not a chain: one expired bin says nothing about the other
 fifteen. Each carries its own status, so the tree shows exactly which one is
 in trouble instead of collapsing into a single failure.
@@ -279,8 +279,8 @@ expired`, and `targets was signed by 0/1 keys`.
 ### Reading the API's replies carefully
 
 When nothing awaits signing, `/api/v1/metadata/sign` returns a message and no
-`data` field at all, so the absence of that field must be handled rather than
-assumed to be an empty list.
+`data` field at all. Reading that absence as an empty list would report a
+repository with nothing to sign when the API said no such thing.
 
 A repository can also report itself ready while its storage holds no files,
 because the two live in different places. The interface shows that as a
@@ -295,7 +295,8 @@ expiry date bumped and is signed again.
 So in a healthy deployment expiry should never be visible. When this service
 does show an expired role, the metadata is not merely stale: the worker that
 renews it has stopped or is failing. The interface says so, which makes an
-expired badge a warning about the deployment rather than a note about a file.
+expired badge a warning about the deployment. Nothing about it concerns one
+file.
 
 Renewal belongs to the worker. This service only reports, and never writes.
 
@@ -303,8 +304,8 @@ Renewal belongs to the worker. This service only reports, and never writes.
 
 ## 6. What the browser receives
 
-Responses carry only the fields a screen needs, so the interface depends on a
-stable shape rather than on the metadata format.
+Responses carry only the fields a screen needs, so the interface depends on
+a stable shape and not on the metadata format.
 
 ```
 RoleSummary   name, version, expires, expires_in, band, threshold,
@@ -318,8 +319,8 @@ OverviewResponse
 
 `expires` and `expires_in` sit beside each other on purpose: one is the date,
 the other the phrase built from it. The phrase is a decision about how a date
-should read, and a decision belongs on one side of the wire rather than in
-four screens.
+should read, and a decision belongs on one side of the wire. Four screens
+would each answer it differently.
 
 ---
 
@@ -379,17 +380,17 @@ server, not to argue with someone who wants the state right now.
 But a visible button is pressed by everyone who arrives, every time, so
 honouring every press would mean a full verification pass per visitor while
 the repository has not moved. A refresh within five seconds of the last
-reading is therefore declined, quietly and quickly. That is a rate limit
-rather than a refusal: once the answer in hand is old enough that a new one
-could differ, pressing it reads the repository again. RSTUF's own worker
+reading is therefore declined, quietly and quickly. That is a rate limit, not a
+refusal: once the answer in hand is old enough that a new one could differ,
+pressing it reads the repository again. RSTUF's own worker
 renews metadata every few minutes, so nothing is lost.
 
 The label beside it says how old the answer is in words, "checked 4 seconds
-ago", rather than as a clock time. What sends someone to that button is not
-knowing whether the screen is current, and saying so removes the reason to
-press it. The age comes from the reading itself rather than from the clock at
-the moment of replying, or a cached answer would claim to have been checked
-the instant it was served.
+ago", never as a clock time. What sends someone to that button is not knowing
+whether the screen is current, and saying so removes the reason to press it.
+The age comes from the reading itself. Take it from the clock at the moment
+of replying and a cached answer claims to have been checked the instant it
+was served.
 
 A deployment normally points at one repository, set by its operator. Where a
 demo deployment wants visitors to explore, the landing page can offer example
@@ -398,7 +399,7 @@ repositories to load, the way public TUF viewers do.
 When the repository is not ready, one short card replaces the table:
 
 The wording is the service's, not the screen's, so one sentence explains a
-state rather than each interface inventing its own. They are in
+state and no interface has to invent its own. They are in
 `metadata_service.py`.
 
 | State | What the card says |
@@ -446,11 +447,11 @@ This is how a signer confirms a rotation went as intended.
 Old versions are fetched by the names the specification gives them under
 consistent snapshots, `1.root.json` onward (§ 6.2.1), and checked before
 anything is shown. The rotation rule is § 5.3 step 4: version N+1 must be
-signed by a threshold of the keys named in version N **and** by a threshold
-of the keys it names itself. The library's `get_verification_result` applies
+signed by a threshold of the keys named in version N **and** by a threshold of
+the keys it names itself. The library's `get_verification_result` applies
 exactly that check to each step of the chain, and reports the outcome instead
-of raising it, which is what lets a failure be displayed rather than stop the
-screen. An unverifiable version is shown as unverifiable, never as history.
+of raising it, so a failure can be displayed and does not stop the screen. An
+unverifiable version is shown as unverifiable, never as history.
 
 The walk starts at the root the client already verified and runs backwards,
 which is the only direction that proves anything. Confirming that version
@@ -466,7 +467,8 @@ the fact therefore goes unnoticed by every normal client. Reading the history
 is what finds it.
 
 One detail that would otherwise mislead: a superseded version is not graded
-for expiry, and that follows the specification rather than taste. Section 5.3
+for expiry. That follows the specification and owes nothing to taste.
+Section 5.3
 walks the chain of roots and says of each intermediate version that its
 expiry "does not matter yet" (step 6); the check happens once, at step 10, on
 the final trusted root. Old roots lapse as a matter of course, so painting
@@ -495,10 +497,9 @@ layout library, would mean a build step the interface deliberately avoids,
 and the shape a TUF repository makes is too shallow to need one.
 
 Delegated roles are collapsed behind a single node by default and expand on
-request, because a repository may hold sixteen of them or two hundred and
-fifty-six. Expanded, they are drawn as a block of chips under one connector
-rather than as two hundred and fifty-six separate branches, which would hide
-the structure they are meant to show.
+request, because a repository may hold 16 of them or 256. Expanded, they are
+drawn as a block of chips under one connector. Drawing 256 separate branches
+would bury the structure they are meant to show.
 
 ---
 
@@ -515,7 +516,7 @@ Each row is a real mechanism, not an intention.
 | where the trust anchor lives | three ordered sources |
 | where metadata lives | a setting, never a code path |
 | how responses are cached | callers reach the cache through three small methods, so a shared store such as Redis can replace the in-process one without touching them |
-| more than one repository | the metadata layer takes its settings as an argument rather than reading global state, and each repository already gets its own trust directory. What is missing is a way to name the second one: `Settings` holds one metadata URL and the service is built once per process, so this is a change to those two places rather than a rewrite |
+| more than one repository | the metadata layer takes its settings as an argument and reads no global state, and each repository already gets its own trust directory. What is missing is a way to name the second one: `Settings` holds one metadata URL and the service is built once per process, so two places change and nothing is rewritten |
 | the browser contract | versioned under `/api/v1/`, so a new shape ships beside the old one |
 | who signs a delegated role | read from the parent's own delegation entry, not inherited from a top-level role, so per-role signing keys are reported correctly |
 | authentication and permissions | every request already passes one backend door, so a login and a per-role permission check slot in front of the routes without changing the metadata layer |
@@ -557,7 +558,7 @@ web page. One image, one
 origin, and no cross-site arrangement for a browser to negotiate.
 
 The interface is React and TypeScript, compiled by Vite, so the image builds
-it rather than copying source. That is a third stage, alongside the one that
+it and no source is copied in. That is a third stage, alongside the one that
 resolves Python dependencies, and only its output reaches the image that
 ships: no Node, no `node_modules`, no TypeScript.
 
@@ -572,15 +573,15 @@ failed on a requirement it could not pin. The file describes where the
 service runs, not where it was written.
 
 The types the interface holds the backend to are generated from the backend's
-own OpenAPI document rather than written by hand, so a field renamed on the
-server becomes a compile error in the component that reads it instead of
-`undefined` on a screen. `make openapi` refreshes them.
+own OpenAPI document. Hand-written ones drift; generated ones turn a field
+renamed on the server into a compile error in the component that reads it,
+instead of `undefined` on a screen. `make openapi` refreshes them.
 
-Requests go through TanStack Query rather than a hook written here. The hook
-written here worked, and the linter's rules of hooks found three real faults
-in it: a ref written during a render, and two effects writing state
-synchronously. Those are the faults a query library exists to remove, and
-removing sixty lines of them is worth one dependency.
+Requests go through TanStack Query. The hook written here first worked, and the
+linter's rules of hooks then found three real faults in it: a ref written
+during a render, and two effects writing state synchronously. Those are the
+faults a query library exists to remove, and removing sixty lines of them is
+worth one dependency.
 
 Nothing is treated as going stale on its own. The backend already reuses a
 verified reading for a short window and declines a refresh that cannot tell
@@ -629,8 +630,8 @@ Settings arrive as environment variables declared in values, the same way
 RSTUF passes its own. Adding the chart to the demo is one dependency entry,
 switched by `enabled`, as every other component there already is.
 
-The trust anchor goes in a Secret rather than into the deployment's
-environment. Root metadata is published, so this is not a secret in the usual
+The trust anchor goes in a Secret. Root metadata is published, so this is
+not a secret in the usual
 sense, but it decides what the service will believe, and that deserves to be
 as hard to edit unnoticed as a credential.
 
@@ -656,8 +657,7 @@ server on port 8080 in front of the worker's directory.
 
 The Helm demo has no such server, and an S3 bucket is not a URL. It turns out
 not to need one. RSTUF's worker writes every metadata object with a
-`public-read` ACL, and that is the default rather than something an operator
-opts into:
+`public-read` ACL, and it does so by default. No operator opts into this:
 
 ```python
 self._s3_object_acl = s3_object_acl or "public-read"
@@ -674,15 +674,16 @@ demo that address is:
 http://rstuf-localstack.rstuf.svc.cluster.local:4566/tuf-metadata/
 ```
 
-Checked rather than assumed: an object written with `--acl public-read` into
-a LocalStack bucket created by `awslocal s3 mb`, exactly as the demo creates
+That claim was tested. An object written with `--acl public-read` into a
+LocalStack bucket created by `awslocal s3 mb`, exactly as the demo creates
 it, is returned for an anonymous `GET` over plain HTTP with no credentials
 and no signature. A key that was never written returns 404, so the 200 is the
 object and not a catch-all.
 
-Two limits on that result. It was reproduced against LocalStack directly
-rather than inside the demo chart, so the address above is derived from the
-chart's service name and port rather than observed in a cluster. And on real
+Two limits on that result. It was reproduced against LocalStack directly and
+not inside the demo chart, so the address above comes from reading the
+chart's service name and port. Nobody has watched it answer in a cluster.
+And on real
 S3 the same ACL is not enough on its own: an account with Block Public Access
 turned on overrides it, which is a deliberate choice an operator makes and
 not something this chart can decide for them.
@@ -752,17 +753,17 @@ frontend/                   React and TypeScript, built by Vite
                             components, endpoints, hooks and types
 ```
 
-`presenters.py` sits under `services/` rather than `repositories/` on
-purpose. It fetches nothing and reads no source; it turns metadata the client
-already verified into the shapes above. Filing it as a repository would name
-it after something it does not do.
+`presenters.py` sits under `services/` on purpose, and `repositories/` was
+where it nearly went. It fetches nothing and reads no source; it turns metadata
+the client already verified into the shapes above. Filing it as a repository
+would name it after something it does not do.
 
 A screen has no `types/` folder unless it has types of its own. Three of
 the four take their shapes from `api/` and pass props used in one place;
 inventing a fourth folder for them would make the tree symmetrical and say
 nothing.
 
-`metadata_service.py` is one class rather than several. The cache and its
+`metadata_service.py` is one class, not four. The cache and its
 per-key lock are state on that object, and they are what stops two
 verification passes writing the same trust directory at once. Splitting it
 would mean several locks guarding one directory, which no test running
@@ -774,14 +775,13 @@ sequentially would catch.
 
 Three repositories with signed metadata are generated locally: one valid, one
 expired, one edited after signing. They are built with real keys, so the
-metadata layer is exercised against genuine signatures rather than
-placeholders.
+metadata layer meets genuine signatures, no placeholders.
 
 Those files are served over HTTP by a small static server, which is the same
 arrangement production uses: the client is handed a URL, never a directory.
-Development therefore exercises the real path rather than a shortcut, and the
-compose file that starts the server doubles as the reference for how an
-operator puts a server in front of their own storage.
+Development therefore runs the real path, no shortcut, and the compose file
+that starts the server doubles as the reference for how an operator puts a
+server in front of their own storage.
 
 The suite is split by what each test is allowed to touch. Unit tests reach
 nothing outside the process, so they run anywhere in under a second and a
@@ -806,12 +806,12 @@ carrying the right fields is not a table a person can read. They start the
 real application on a port, serving the compiled interface exactly as the
 container does, and drive Chromium against a generated repository.
 
-They run as a second pytest session rather than alongside the rest, and that
-is not tidiness. Playwright's synchronous API drives an event loop of its own,
-and once it has run in a session pytest-asyncio stops awaiting the async tests
-that follow: they are collected, never run, and reported as failures. Keeping
-the two apart costs nothing, since the browser tests need the interface
-compiled and a browser installed while the others need neither.
+They run as a second pytest session, and that is not tidiness. Playwright's
+synchronous API drives an event loop of its own, and once it has run in a
+session pytest-asyncio stops awaiting the async tests that follow: they are
+collected, never run, and reported as failures. Keeping the two apart costs
+nothing, since the browser tests need the interface compiled and a browser
+installed while the others need neither.
 
 Every test that cannot run says why and skips, so a green run never hides a
 gap. On Windows all 53 integration tests skip, because the library caches its
@@ -866,8 +866,8 @@ separately, which we do for files already saved.
 Windows refuses without Developer Mode. Containers are unaffected.
 
 **Status without files.** A repository can report itself ready while its
-storage is empty. The interface reports that plainly rather than treating it
-as a failure.
+storage is empty. The interface reports that plainly and does not call it a
+failure.
 
 **No metrics yet.** The service logs but does not export counters. Every
 request passes one middleware stack, so metrics attach there later without

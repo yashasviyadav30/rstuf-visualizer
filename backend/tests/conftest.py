@@ -41,7 +41,7 @@ def symlinks_permitted() -> bool:
 
     python-tuf caches the trust anchor behind a symbolic link. Windows
     refuses that without Developer Mode or administrator rights, which makes
-    the client unusable rather than merely degraded.
+    the client unusable, not merely degraded.
     """
     with tempfile.TemporaryDirectory() as directory:
         target = Path(directory) / "target"
@@ -59,7 +59,7 @@ def _fixtures_are_usable() -> bool:
     The valid repository carries a short-lived timestamp, matching how RSTUF
     renews that role. Left alone it lapses within a day, which would fail the
     suite for a reason that says nothing about the code, so freshness is
-    checked rather than assumed.
+    checked, never assumed.
     """
     timestamp = FIXTURE_ROOT / "good" / "timestamp.json"
     if not timestamp.exists():
@@ -108,7 +108,7 @@ def browser_available() -> bool:
     """Report whether a browser Playwright can drive is installed.
 
     The browsers are a separate download from the library, so a machine can
-    have one and not the other. Asked here rather than left to fail inside a
+    have one and not the other. Asked here, so it does not fail inside a
     fixture, because a test that cannot run should say so and skip.
     """
     try:

@@ -6,7 +6,7 @@
 
 The generated repository publishes three versions of root. Version two adds a
 second offline key and raises the threshold to two; version three replaces the
-online key. Every assertion below reads that chain rather than a mock, so a
+online key. Every assertion below reads that chain and not a mock, so a
 change to how the client walks roots shows up here.
 """
 
@@ -52,7 +52,7 @@ class TestRootHistory(RepositoryTestCase):
             "present": 2,
             "threshold": 2,
         }
-        # Version one has nothing before it, and says so rather than
+        # Version one has nothing before it, and says so instead of
         # claiming a check it could not run.
         assert versions[1]["by_previous_keys"] is None
         assert versions[1]["by_own_keys"]["threshold"] == 1

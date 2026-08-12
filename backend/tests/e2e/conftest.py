@@ -38,10 +38,10 @@ def _free_port() -> int:
 def visualizer_url(monkeypatch, serve_fixture) -> Iterator[object]:
     """Start the service against one generated repository, and yield its URL.
 
-    Configuration arrives through the environment rather than through an
+    Configuration arrives through the environment, never through an
     override, because this is the real application: it reads its settings the
     same way it does in the container, and both caches are cleared so it reads
-    them again rather than reusing a previous test's.
+    them again instead of reusing a previous test's.
     """
     servers: list[uvicorn.Server] = []
     threads: list[threading.Thread] = []

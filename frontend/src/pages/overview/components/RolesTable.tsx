@@ -13,7 +13,7 @@ interface Props {
 /**
  * The landing view, because it is dense and scannable.
  *
- * The threshold is shown beside the signers rather than on its own: "2 of 2"
+ * The threshold sits beside the signers, never on its own: "2 of 2"
  * says the arrangement, where a bare "2" says almost nothing.
  */
 export function RolesTable({ roles, selected, onSelect }: Props) {

@@ -44,7 +44,7 @@ class TestLoadRepository(RepositoryTestCase):
         by_name = {role.name: role for role in view.roles}
         # Root asks for two of its two offline keys; the online roles ask for
         # one. Reading both proves the threshold comes from root's own entry
-        # for each role rather than from a single repository-wide setting.
+        # for each role, not from a single repository-wide setting.
         assert by_name["root"].threshold == 2
         assert by_name["root"].key_count == 2
         assert by_name["timestamp"].threshold == 1

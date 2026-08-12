@@ -21,7 +21,7 @@ export function useBins() {
  * Nothing is asked for until a reader picks a bin or types, because the whole
  * point of the bin list is that opening this tab costs one small request.
  *
- * The page number is held against what is being paged through, rather than
+ * The page number is held against what is being paged through, never
  * reset when that changes. A narrower search has fewer pages, and page four
  * of the old result is not a place the new one has; keeping them apart says
  * that without an effect that writes state during a render.

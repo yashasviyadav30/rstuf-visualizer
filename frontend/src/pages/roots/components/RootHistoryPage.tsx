@@ -52,7 +52,7 @@ export function RootHistoryPage() {
  * The check is an object, not a flag, and reading it as one would say "signed"
  * for a check that failed. On the screen that exists to audit rotations, that
  * is the difference between clearing a broken root and accusing a sound one,
- * so the count is shown rather than a verdict alone.
+ * so the count is shown, not a verdict on its own.
  */
 function SignatureCheck({
   check,

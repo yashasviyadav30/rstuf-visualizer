@@ -37,7 +37,7 @@ describe('the bin list', () => {
     expect(screen.getByText('0')).toBeTruthy();
   });
 
-  it('says a bin could not be read rather than showing zero', () => {
+  it('says a bin could not be read instead of showing zero', () => {
     // Zero would be a claim about its contents. Nothing was read, so
     // nothing about its contents is known.
     show([bin({ name: 'bins-9', count: 0, available: false })]);

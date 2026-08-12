@@ -32,8 +32,8 @@ async def artifact_bins(
     """Name every role holding artifacts, with how many it holds.
 
     Asked for before the artifacts themselves, so a repository split across
-    two hundred and fifty-six bins opens as a list of counts rather than as
-    a table of every package it has ever carried.
+    256 bins opens as a list of counts. The alternative is a table of every
+    package it has ever carried.
     """
     try:
         return await service.artifact_bins()

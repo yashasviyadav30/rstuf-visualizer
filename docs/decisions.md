@@ -10,7 +10,7 @@ ask about because they differ from what was suggested.
 
 ---
 
-## Vitest rather than Jest
+## Vitest, not Jest
 
 Jest was suggested. Vitest runs the same API, uses the project's existing Vite
 configuration, and needs no second toolchain to transform TypeScript. Jest
@@ -32,7 +32,7 @@ One runner, one language in CI, and the fixtures come for free.
 The cost, stated plainly: someone looking for browser tests will look in
 `frontend/` first and not find them.
 
-## TanStack Query rather than a hook of our own
+## TanStack Query, and not the hook we already had
 
 There was a hook of our own first, about sixty lines, and it worked. ESLint's
 rules of hooks then found three faults in it: a ref written during a render,
@@ -57,8 +57,7 @@ one place each.
 
 `artifacts` does have one, and has the folder: the state its hook returns is
 a real contract, and the distinction it carries between "nothing matched" and
-"you have not asked yet" is the kind of thing worth naming rather than
-inferring.
+"you have not asked yet" is the kind of thing worth naming outright.
 
 An empty folder on the other three would make the tree look symmetrical and
 tell a reader nothing.
@@ -71,7 +70,7 @@ is a thing one person says to another, and a tab that only exists in memory
 cannot carry it.
 
 The hash is the part that needs explaining. A path router would give cleaner
-addresses, `/roots` rather than `#/roots`, but a browser asks the server for
+addresses, `/roots` instead of `#/roots`, but a browser asks the server for
 `/roots` on a reload, and the server has to answer with `index.html` for it
 to work. FastAPI's `frontend()` takes a `fallback` argument that looks like
 it does this; it was tested, with `fallback="index.html"`, and `/artifacts`
@@ -97,8 +96,8 @@ See [design.md](design.md), section 11.
 `middleware/auth.py` enforces nothing and says so. This service is read-only
 over metadata that is already published, so there is nothing here to keep from
 a visitor. What changes that is write access, and the seam sits in front of
-the handlers because per-role permissions are a question about the caller
-rather than about the metadata.
+the handlers because per-role permissions ask about the caller, not about
+the metadata.
 
 ## Pull requests larger than 500 lines
 
@@ -119,7 +118,7 @@ documents.
 ## Not done, and why
 
 **Component tests, everywhere.** Twenty-five tests cover the pieces where
-rendering is a decision rather than a translation: what the bin list says
+rendering is a decision and not a translation: what the bin list says
 about a bin holding nothing against one it could not read, what the roles
 table does with a threshold it was not given, and which of two very different
 failures the error banner is reporting. Each of those is a branch that would

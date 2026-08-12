@@ -42,7 +42,7 @@ export function StatusPage() {
       {data.message && <p className="muted">{data.message}</p>}
 
       {/* When nothing awaits signing the API returns a message and no data
-          field at all, so an empty list here is a real answer rather than a
+          field at all, so an empty list here is a real answer and not a
           gap. */}
       <h3>Awaiting signatures</h3>
       {data.awaiting_signatures && data.awaiting_signatures.length > 0 ? (

@@ -5,9 +5,8 @@
 """Turn verified metadata into the shapes the browser receives.
 
 Nothing here fetches or checks anything. It reads what the client already
-verified and presents it: expiry as a band rather than a bare date, keys by
-their names rather than their identifiers, and a tree assembled from files
-that were downloaded once.
+verified and presents it: expiry as a band, keys by the names RSTUF records
+for them, and a tree assembled from files that were downloaded once.
 """
 
 from __future__ import annotations
@@ -100,7 +99,7 @@ def expiry_band(
 def key_summaries(root: Metadata | None) -> dict[str, KeySummary]:
     """Describe every key root declares, by name where RSTUF supplies one.
 
-    A sixty-four character identifier tells an operator nothing. RSTUF records
+    A 64-character identifier tells an operator nothing. RSTUF records
     a readable name on each key, and marks the online ones with the address of
     the service that holds them, which is what makes the offline and online
     split visible.
@@ -282,14 +281,14 @@ def build_role_detail(
 def _valid_signatures(view: RepositoryView, name: str) -> int | None:
     """Count the signatures on a top-level role that root accepts.
 
-    Counted rather than assumed. The client verified this role during the
+    Counted, never assumed. The client verified this role during the
     refresh, so the number necessarily meets the threshold, but a screen that
     reports "2 of 2" should have counted the two: an operator reading a
     signature count is asking a question about evidence, and the honest answer
     to "how many" is never "enough".
 
     ``None`` where the count cannot be taken, which the interface reports as
-    unknown rather than as zero.
+    unknown. Zero would be a different claim.
     """
     root = view.documents.get("root")
     document = view.documents.get(name)

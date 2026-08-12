@@ -279,7 +279,7 @@ input[type="search"]::placeholder { color: var(--muted); }
 
 /* The bin list beside the artifact table. Narrow on purpose: it is an index,
    and the table beside it is what a reader came for. Declared on the grid
-   rather than on the column, because a grid ignores an item asking for its
+   and not on the column, because a grid ignores an item asking for its
    own width. */
 .split--index { grid-template-columns: 240px 1fr; }
 @media (max-width: 1000px) {
@@ -343,7 +343,7 @@ input[type="search"]::placeholder { color: var(--muted); }
 
 /* Only for keyboard focus. A mouse user clicking a row does not want a ring
    around it; someone tabbing through has no other way to know where they are.
-   The SVG nodes take an outline rather than a box-shadow, because a shadow on
+   The SVG nodes take an outline instead of a box-shadow, because a shadow on
    a <g> lands somewhere unhelpful. */
 :focus-visible {
   outline: 2px solid var(--accent, #69f);

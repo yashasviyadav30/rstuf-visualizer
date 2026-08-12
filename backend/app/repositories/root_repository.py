@@ -7,7 +7,7 @@
 Root is the anchor, so rotating a key means publishing a new version of it.
 The specification's rotation rule is that version N must be signed to
 threshold by the keys of version N-1 *and* by its own keys, which is what
-makes a series of root files a chain rather than a pile.
+makes a series of root files a chain instead of a pile.
 
 The walk starts at the root the client already verified and moves backwards.
 That direction is deliberate. Confirming that version N-1's keys signed
@@ -69,7 +69,7 @@ class RootRevision:
 
         Version one has no predecessor it could have rotated from, and nor
         does a version whose predecessor was never fetched. Both are honest
-        gaps, recorded as such rather than counted as failures.
+        gaps, recorded as such and never counted as failures.
         """
         if not self.by_own_keys.verified:
             return False

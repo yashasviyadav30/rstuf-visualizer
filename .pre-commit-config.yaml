@@ -1,7 +1,7 @@
 ﻿# Runs when you type `git commit`. If the code is misformatted, or has an
-# obvious fault, it stops the commit here rather than letting CI find it.
+# obvious fault, it stops the commit here instead of leaving it to CI.
 #
-# This sits at the repository root rather than under backend/, because
+# This sits at the repository root, not under backend/, because
 # pre-commit resolves paths from the root of the git repository: a config
 # living one directory down still ran against the whole tree, while only ever
 # being written for half of it. The interface and the chart were unchecked.
@@ -57,7 +57,7 @@ repos:
 
   # --- the interface -------------------------------------------------------
   #
-  # Run through npm rather than a pinned mirror, so the linter here is the one
+  # Run through npm and not a pinned mirror, so the linter here is the one
   # the project declares and CI installs, and there is no second version to
   # keep in step. It needs node_modules, which `make setup` provides.
 

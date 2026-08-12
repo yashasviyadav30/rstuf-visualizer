@@ -29,7 +29,7 @@ from one to two, and version 3 replaced the online key.
 ![Artifacts, a bin at a time](docs/images/artifacts.png)
 
 The artifacts a repository vouches for, opened one bin at a time. A repository
-may delegate to two hundred and fifty-six of them, so the screen starts as a
+may delegate to 256 of them, so the screen starts as a
 list of counts and reads nothing until a bin is opened.
 
 ![Repository status](docs/images/status.png)
@@ -149,8 +149,8 @@ for, so in the `rstuf-demo` chart this points straight at the bucket:
 
 Without `trustedRoot`, the anchor is taken from the RSTUF API instead. That
 is weaker, because it then arrives from the same deployment being checked.
-With neither, the service reports that it cannot verify anything rather than
-showing metadata it has not checked.
+With neither, the service reports that it can verify nothing. Showing
+metadata it has not checked is the one thing it will not do.
 
 ## Local test repositories
 
@@ -213,7 +213,7 @@ Three workflows, each running what a developer runs by hand:
 | `image.yml` | builds the image, runs it against a generated repository, publishes to ghcr.io on a `v*` tag |
 
 `pipenv install --deploy` is used throughout, so a dependency added without
-relocking fails the build rather than quietly resolving to something else.
+relocking fails the build instead of quietly resolving to something else.
 
 ## Layout
 

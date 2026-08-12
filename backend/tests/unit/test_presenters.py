@@ -28,7 +28,7 @@ class TestExpiryBand(UnitTestCase):
 
     def test_under_a_day_is_critical(self) -> None:
         """Timestamp lives here in normal operation, so it must be its own
-        band rather than being folded into 'valid'."""
+        band, and is not folded into 'valid'."""
         band, phrase = expiry_band(at(hours=5), NOW)
 
         assert band is ExpiryBand.CRITICAL
@@ -56,7 +56,7 @@ class TestExpiryBand(UnitTestCase):
 
     def test_a_naive_timestamp_is_read_as_utc(self) -> None:
         """Metadata carries UTC. Comparing a naive value would raise, so it
-        is assumed rather than rejected."""
+        is assumed, never rejected."""
         naive = at(days=30).replace(tzinfo=None)
 
         band, _ = expiry_band(naive, NOW)

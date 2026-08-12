@@ -12,7 +12,7 @@ import type {
  * Every role holding artifacts, with a count each.
  *
  * Asked for before the artifacts themselves, so a repository split across two
- * hundred and fifty-six bins opens as a list of counts rather than as a table
+ * 256 bins opens as a list of counts and not as a table
  * of every package it has ever carried.
  */
 export function getBins(): Promise<ArtifactBinsResponse> {

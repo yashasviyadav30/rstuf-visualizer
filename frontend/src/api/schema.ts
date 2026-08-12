@@ -82,7 +82,7 @@ export interface paths {
          * Role Raw
          * @description Serve the bytes one role was verified from.
          *
-         *     Sent as a download rather than rendered, and never as HTML, so a
+         *     Sent as a download, never as HTML a browser will render, so a
          *     repository cannot put script into a file this service hands to a browser.
          */
         get: operations["role_raw_api_v1_roles__role__raw_get"];
@@ -107,7 +107,7 @@ export interface paths {
          *
          *     Each step is checked against the rule the specification sets for a
          *     rotation, so a version that cannot be tied to the one before it is
-         *     reported as exactly that rather than shown as settled history.
+         *     reported as exactly that. Settled history it is not.
          */
         get: operations["roots_api_v1_roots_get"];
         put?: never;
@@ -130,8 +130,8 @@ export interface paths {
          * @description Name every role holding artifacts, with how many it holds.
          *
          *     Asked for before the artifacts themselves, so a repository split across
-         *     two hundred and fifty-six bins opens as a list of counts rather than as
-         *     a table of every package it has ever carried.
+         *     256 bins opens as a list of counts. The alternative is a table of every
+         *     package it has ever carried.
          */
         get: operations["artifact_bins_api_v1_artifacts_bins_get"];
         put?: never;
@@ -240,7 +240,7 @@ export interface components {
             artifacts?: components["schemas"]["ArtifactSummary"][];
             /**
              * Unavailable
-             * @description Delegated roles that could not be read. Whatever they list is missing from this page, and from the total beside it, so the shortfall is named rather than left to look like an empty bin
+             * @description Delegated roles that could not be read. Whatever they list is missing from this page, and from the total beside it, so the shortfall is named and does not pass for an empty bin
              */
             unavailable?: string[];
         };
@@ -284,7 +284,7 @@ export interface components {
          * @description What every failure from this API carries.
          *
          *     The shape FastAPI sends for an HTTPException, named here so it appears in
-         *     the OpenAPI document rather than being left for a consumer to discover.
+         *     the OpenAPI document instead of leaving a consumer to discover it.
          *     The message is written for a person to read.
          */
         ErrorResponse: {
@@ -319,7 +319,7 @@ export interface components {
         KeyChangeAction: "added" | "removed";
         /**
          * KeySummary
-         * @description One signing key, named rather than shown as a bare identifier.
+         * @description One signing key, named, since a bare identifier tells nobody much.
          */
         KeySummary: {
             /**
@@ -434,7 +434,7 @@ export interface components {
             artifacts?: components["schemas"]["ArtifactSummary"][];
             /**
              * Raw Url
-             * @description Where to read the bytes this role was verified from, served by this service rather than linked to the storage behind it
+             * @description Where to read the bytes this role was verified from, served by this service, and never linked to the storage behind it
              * @default
              */
             raw_url: string;

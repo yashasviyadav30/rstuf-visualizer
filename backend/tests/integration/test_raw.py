@@ -4,7 +4,7 @@
 
 """Tests for serving the bytes a role was verified from.
 
-The link on a role's detail panel points here rather than at the storage the
+The link on a role's detail panel points here, never at the storage the
 files came from, so what a reader opens is the document the page describes.
 """
 

@@ -39,7 +39,7 @@ async def roots(
 
     Each step is checked against the rule the specification sets for a
     rotation, so a version that cannot be tied to the one before it is
-    reported as exactly that rather than shown as settled history.
+    reported as exactly that. Settled history it is not.
     """
     try:
         return await service.roots(limit=limit)

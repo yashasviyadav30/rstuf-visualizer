@@ -206,8 +206,8 @@ class MetadataService:
         """Fetch and check one delegated role, explaining a broken chain."""
         if name not in view.delegated and view.verification_error:
             # The delegation list lives in targets, which this repository
-            # never got as far as verifying, so say that rather than claim
-            # the role does not exist.
+            # never got as far as verifying. Saying the role does not exist
+            # would be a claim this pass cannot support.
             raise UnknownRoleError(
                 f"'{name}' could not be resolved: verification stopped at "
                 f"{view.verification_error}"
@@ -256,7 +256,7 @@ class MetadataService:
 
         The walk starts from the root the client verified, so the history is
         keyed by that version: publishing a new root retires the cached answer
-        rather than leaving a stale chain on the page.
+        instead of leaving a stale chain on the page.
         """
         view = await self.view()
         trusted = view.documents.get("root")
@@ -286,7 +286,7 @@ class MetadataService:
         consent; loading them at startup would not be.
 
         Returns what was read and the names of the roles that could not be.
-        Delegated roles are siblings rather than a chain, so one unreachable
+        Delegated roles are siblings, never a chain, so one unreachable
         bin costs its own artifacts and no others. It is named in the answer,
         because a list quietly short of a hundred entries is worse than a list
         that says which hundred are missing.
@@ -360,8 +360,8 @@ class MetadataService:
         """Name every role holding artifacts, with how many it holds.
 
         The browser asks for this before asking for artifacts, so a
-        repository of two hundred and fifty-six bins costs one screen of
-        counts rather than a table nobody can read.
+        repository of 256 bins costs one screen of counts instead of a
+        table nobody can read.
         """
         view = await self.view()
         collected, unavailable = await self._artifact_index(view)

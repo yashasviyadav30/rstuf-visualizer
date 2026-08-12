@@ -93,7 +93,7 @@ class RepositoryView:
     )
     """When this reading was taken.
 
-    Recorded on the reading itself rather than worked out afterwards. A view
+    Recorded on the reading itself, never worked out afterwards. A view
     is served from the cache long after it was built, so the page has to
     report when the repository was read; deriving that from how much time has
     passed samples two different clocks and lands a few microseconds apart on
@@ -322,7 +322,7 @@ async def load_repository(
 ) -> RepositoryView:
     """Verify the repository and describe what was found.
 
-    Metadata that fails verification is reported rather than raised: showing a
+    Metadata that fails verification is reported, not raised: showing a
     repository in trouble is the purpose of this service. Only an unreachable
     repository raises, because then there is nothing to show at all.
     """
@@ -377,8 +377,8 @@ def _fetch_delegated(
     how many of the required signatures were present.
     """
     # Whether the name is a role at all is settled before anything is
-    # fetched, so a nonsense name is answered as a nonsense name rather than
-    # as an infrastructure failure.
+    # fetched, so a nonsense name gets a nonsense-name answer. Nothing here
+    # reports it as an infrastructure failure.
     if name not in view.delegated:
         raise UnknownRoleError(name)
 

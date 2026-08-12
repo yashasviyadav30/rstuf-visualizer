@@ -4,7 +4,7 @@
 
 """Liveness, and nothing else.
 
-Kept at the root rather than under the version prefix, because probes are
+Kept at the root, outside the version prefix, because probes are
 configured once when a deployment is created and should never have to move.
 """
 

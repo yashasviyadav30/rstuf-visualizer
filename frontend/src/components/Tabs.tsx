@@ -12,7 +12,7 @@ const TABS = [
 ] as const;
 
 /**
- * The four screens, as links rather than buttons.
+ * The four screens, as links. Buttons would not survive a bookmark.
  *
  * A link can be copied, sent and reopened, which is the point of routing
  * them: "look at the root history of this repository" is a thing one person

@@ -19,7 +19,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 # Containers that must finish before this one starts. The service survives an
-# unreachable repository by design, reporting it on screen rather than
+# unreachable repository by design, reporting it on screen instead of
 # failing, so nothing here is required. It is useful in a deployment that
 # brings its storage up alongside this, where waiting saves a first page load
 # that has nothing to show.

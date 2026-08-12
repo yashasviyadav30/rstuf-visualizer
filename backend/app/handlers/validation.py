@@ -9,7 +9,7 @@ and a rule enforced in two places eventually stops matching itself.
 """
 
 # A role name reaches us in a URL and is used to build a filename, so it is
-# constrained here rather than trusted. This also rejects path traversal
+# constrained here and never trusted. This also rejects path traversal
 # before any of our own code runs.
 ROLE_NAME = r"^[A-Za-z0-9._-]{1,128}$"
 

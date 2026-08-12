@@ -40,5 +40,5 @@
     --set-file trustedRoot.value=<base64 of your root.json>
 
   With no anchor from either source, the service reports that it cannot
-  verify anything rather than showing metadata it has not checked.
+  verify nothing at all, and will not show metadata it has not checked.
 {{- end }}

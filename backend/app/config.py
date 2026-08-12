@@ -16,11 +16,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Settings validated once at startup.
-
-    A missing or malformed required value stops the application immediately,
-    which is preferable to failing later with an unclear error.
-    """
+    """Settings, read once while the server starts."""
 
     model_config = SettingsConfigDict(env_prefix="RSTUF_")
 
@@ -32,7 +28,7 @@ class Settings(BaseSettings):
 
     Holds either the root metadata itself or a URL pointing at it. Left unset,
     the anchor is taken from the RSTUF API, and with neither available the
-    service reports that it cannot verify anything rather than guessing.
+    service reports that it can verify nothing at all. It does not guess.
     """
 
     api_url: str | None = None
@@ -59,7 +55,7 @@ def cors_origins() -> list[str]:
     permission to reach the API. A frontend development server does, because
     it answers on a port of its own.
 
-    Read straight from the environment rather than through ``Settings``.
+    Read straight from the environment, going around ``Settings``.
     Middleware is attached while the application is being built, and
     ``Settings`` requires a metadata URL that importing the application, or
     dumping its schema, has no reason to supply.

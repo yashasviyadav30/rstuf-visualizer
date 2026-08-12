@@ -17,7 +17,7 @@ and no amount of mocking can tell you which. Those live in
 ``tests/integration``, and they carry the two conditions they depend on: the
 generator that builds the repositories, and permission to create the symbolic
 link python-tuf caches its trust anchor behind. Declaring both on a base
-class rather than on each class means a new test cannot quietly forget one
+class, and not on each class, means a new test cannot quietly forget one
 and appear to pass.
 
 An end-to-end test opens the built interface in a real browser, pointed at a

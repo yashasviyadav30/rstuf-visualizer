@@ -5,8 +5,8 @@
 """Response shapes returned to the browser.
 
 These are deliberately narrower than the underlying TUF metadata. The browser
-depends on this contract rather than on the library's internals, so the
-metadata format can change without breaking the interface.
+depends on this contract, never on the library's internals, so the metadata
+format can change without breaking the interface.
 """
 
 from enum import Enum
@@ -51,7 +51,7 @@ class ErrorResponse(BaseModel):
     """What every failure from this API carries.
 
     The shape FastAPI sends for an HTTPException, named here so it appears in
-    the OpenAPI document rather than being left for a consumer to discover.
+    the OpenAPI document instead of leaving a consumer to discover it.
     The message is written for a person to read.
     """
 
@@ -62,7 +62,7 @@ class ErrorResponse(BaseModel):
 
 
 class KeySummary(BaseModel):
-    """One signing key, named rather than shown as a bare identifier."""
+    """One signing key, named, since a bare identifier tells nobody much."""
 
     keyid: str = Field(description="Full key identifier")
     keyid_short: str = Field(description="First 8 characters, for display")
@@ -170,7 +170,7 @@ class RoleDetailResponse(BaseModel):
         default="",
         description=(
             "Where to read the bytes this role was verified from, served by "
-            "this service rather than linked to the storage behind it"
+            "this service, and never linked to the storage behind it"
         ),
     )
 
@@ -187,7 +187,7 @@ class ArtifactsResponse(BaseModel):
         description=(
             "Delegated roles that could not be read. Whatever they list is "
             "missing from this page, and from the total beside it, so the "
-            "shortfall is named rather than left to look like an empty bin"
+            "shortfall is named and does not pass for an empty bin"
         ),
     )
 

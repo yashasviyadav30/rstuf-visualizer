@@ -4,7 +4,7 @@
 
 """Photograph each screen, against a repository built for the purpose.
 
-The pictures in the documents are taken by this script rather than by hand,
+The pictures in the documents are taken by this script and never by hand,
 so they cannot drift from what the interface actually draws. Run it after a
 change that alters a screen:
 

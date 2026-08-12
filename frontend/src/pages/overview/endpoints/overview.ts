@@ -13,8 +13,8 @@ export function getOverview(refresh = false): Promise<OverviewResponse> {
 /**
  * One role, fetched when it is opened.
  *
- * A delegated role costs a request here rather than at page load, which is
- * what keeps a repository of two hundred and fifty-six bins cheap to draw.
+ * A delegated role costs a request here and not at page load, which is
+ * what keeps a repository of 256 bins cheap to draw.
  */
 export function getRole(name: string): Promise<RoleDetailResponse> {
   return request<RoleDetailResponse>(`/roles/${encodeURIComponent(name)}`);
