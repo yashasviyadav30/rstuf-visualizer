@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { OverviewResponse, RoleDetailResponse } from '../../../api/types';
 import { getOverview, getRole } from '../endpoints/overview';
@@ -25,20 +25,29 @@ export interface OverviewState {
  */
 export function useOverview(): OverviewState {
   const client = useQueryClient();
-  const [refreshing, setRefreshing] = useState(false);
+
+  // A ref, not state, and the distinction is the whole of this hook.
+  // Refetching starts synchronously, inside the same handler, before React
+  // has re-rendered. A flag set through state is not visible to the function
+  // that reads it until the render after that, so the request went out
+  // without the one thing the button exists to send.
+  const askedForCheck = useRef(false);
 
   const query = useQuery({
     queryKey: ['overview'],
-    queryFn: async () => {
-      const result = await getOverview(refreshing);
-      setRefreshing(false);
-      return result;
+    queryFn: () => {
+      // Read and cleared before anything can fail, so the flag belongs to
+      // this request. Left set by a rejected one, it would attach itself to
+      // whichever fetch happened next.
+      const refresh = askedForCheck.current;
+      askedForCheck.current = false;
+      return getOverview(refresh);
     },
   });
 
   const refresh = useCallback(() => {
-    setRefreshing(true);
-    void client.invalidateQueries({ queryKey: ['overview'] });
+    askedForCheck.current = true;
+    void client.refetchQueries({ queryKey: ['overview'] });
   }, [client]);
 
   return {
