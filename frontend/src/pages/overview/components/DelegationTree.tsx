@@ -17,6 +17,21 @@ import {
 } from '../tree';
 import { GROUP } from '../types/tree';
 
+/**
+ * Enter and Space, on something that is not a real button.
+ *
+ * An SVG group can be given a button's role but not its behaviour, so the
+ * two keys a button answers to have to be handled here.
+ */
+function onActivate(run: () => void) {
+  return (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      run();
+    }
+  };
+}
+
 interface Props {
   overview: OverviewResponse;
   selected: string | null;
@@ -62,11 +77,15 @@ export function DelegationTree({
 
   return (
     <div className="tree">
+      {/* Not role="img": the nodes inside are operable, and an image
+          hides its contents from anyone not using a mouse. Every top-level
+          role is also a row in the table above, but the delegated ones are
+          only reachable here, so they have to be reachable by keyboard. */}
       <svg
         viewBox={`0 0 ${placed.width} ${height}`}
         width={placed.width}
         height={height}
-        role="img"
+        role="group"
         aria-label="Delegation tree"
       >
         {[...model.children.entries()].flatMap(([parent, kids]) =>
@@ -107,7 +126,18 @@ export function DelegationTree({
               key={node.name}
               className={classes.join(' ')}
               transform={`translate(${node.x},${node.y})`}
+              role="button"
+              tabIndex={0}
+              aria-label={
+                isGroup
+                  ? `${binsOpen ? 'Hide' : 'Show'} ${label}`
+                  : `Open ${node.name}`
+              }
+              aria-expanded={isGroup ? binsOpen : undefined}
               onClick={() => (isGroup ? onToggleBins() : onSelect(node.name))}
+              onKeyDown={onActivate(() =>
+                isGroup ? onToggleBins() : onSelect(node.name),
+              )}
             >
               <rect width={NODE_W} height={NODE_H} rx={5} />
               <circle
@@ -134,7 +164,11 @@ export function DelegationTree({
               key={bin.name}
               className={`gchip${bin.name === selected ? ' is-selected' : ''}`}
               transform={`translate(${at.x},${at.y})`}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open ${bin.name}`}
               onClick={() => onSelect(bin.name)}
+              onKeyDown={onActivate(() => onSelect(bin.name))}
             >
               <rect width={CHIP_W} height={CHIP_H} rx={4} />
               <circle

@@ -21,11 +21,11 @@ export function RolesTable({ roles, selected, onSelect }: Props) {
     <table className="table">
       <thead>
         <tr>
-          <th>Role</th>
-          <th>Signers</th>
-          <th>Ver.</th>
-          <th>Expiry</th>
-          <th>Status</th>
+          <th scope="col">Role</th>
+          <th scope="col">Signers</th>
+          <th scope="col">Ver.</th>
+          <th scope="col">Expiry</th>
+          <th scope="col">Status</th>
         </tr>
       </thead>
       <tbody>

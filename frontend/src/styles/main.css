@@ -315,3 +315,40 @@ input[type="search"]::placeholder { color: var(--muted); }
 
 .keys, .paths { list-style: none; margin: 0 0 12px; padding: 0; }
 .keys li, .paths li { margin: 0 0 4px; }
+
+/* --- reachable without a mouse ------------------------------------------ */
+
+/* Named for a screen reader, absent from the screen. Used where a control's
+   purpose is obvious by position and would be clutter written out. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Only for keyboard focus. A mouse user clicking a row does not want a ring
+   around it; someone tabbing through has no other way to know where they are.
+   The SVG nodes take an outline rather than a box-shadow, because a shadow on
+   a <g> lands somewhere unhelpful. */
+:focus-visible {
+  outline: 2px solid var(--accent, #69f);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.gnode:focus-visible rect,
+.gchip:focus-visible rect {
+  outline: 2px solid var(--accent, #69f);
+  outline-offset: 2px;
+}
+
+.gnode,
+.gchip {
+  cursor: pointer;
+}

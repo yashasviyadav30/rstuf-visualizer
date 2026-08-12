@@ -20,7 +20,7 @@ export const TABS = [
  */
 export function Tabs() {
   return (
-    <nav className="tabs">
+    <nav className="tabs" aria-label="Screens">
       <div className="container tabs__inner">
         {TABS.map((tab) => (
           <NavLink

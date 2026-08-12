@@ -23,10 +23,10 @@ export function ArtifactTable({
     <table className="table">
       <thead>
         <tr>
-          <th>Path</th>
-          {showRole && <th>Role</th>}
-          <th>Size</th>
-          <th>SHA-256</th>
+          <th scope="col">Path</th>
+          {showRole && <th scope="col">Role</th>}
+          <th scope="col">Size</th>
+          <th scope="col">SHA-256</th>
         </tr>
       </thead>
       <tbody>

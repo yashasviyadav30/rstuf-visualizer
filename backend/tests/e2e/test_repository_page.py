@@ -56,8 +56,26 @@ class TestAHealthyRepository(BrowserTestCase):
         know the computing worked."""
         page.goto(visualizer_url("good"))
 
-        expect(page.get_by_role("img", name="Delegation tree")).to_be_visible()
+        expect(
+            page.get_by_role("group", name="Delegation tree")
+        ).to_be_visible()
         expect(page.get_by_text("2 delegated roles")).to_be_visible()
+
+    def test_a_bin_can_be_opened_without_a_mouse(
+        self, page: Page, visualizer_url
+    ) -> None:
+        """Every top-level role is a row in the table as well, but a
+        delegated one is only reachable in the tree. If the tree needs a
+        mouse, those roles cannot be opened at all."""
+        page.goto(visualizer_url("good"))
+
+        page.get_by_role("button", name="Show 2 delegated roles").focus()
+        page.keyboard.press("Enter")
+        page.get_by_role("button", name="Open bins-0").focus()
+        page.keyboard.press("Enter")
+
+        detail = page.locator(".detail")
+        expect(detail.get_by_role("heading", name="bins-0")).to_be_visible()
 
     def test_opens_one_role_without_leaving_the_page(
         self, page: Page, visualizer_url

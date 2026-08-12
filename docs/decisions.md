@@ -124,9 +124,15 @@ themselves are covered end to end, in a browser, against a real repository,
 which is where a rendering fault actually shows. Per-component render tests
 would add a third layer without a third kind of failure to catch.
 
-**Accessibility beyond the basics.** The tabs are buttons rather than a
-labelled tablist, and the search field has a placeholder rather than a label.
-Both are worth fixing and neither is done.
+**Accessibility.** The tabs are links carrying `aria-current`, the search
+field has a label, table headers are scoped, focus is visible only to the
+keyboard, and every node in the delegation tree can be reached and opened with
+Enter or Space. That last one is not decoration: a delegated role appears
+nowhere else on that screen, so a tree needing a mouse would put those roles
+out of reach entirely.
+
+What is not done: no audit against WCAG, no screen-reader testing, and the
+colour choices have not been checked for contrast.
 
 **Metrics.** The service logs and exports no counters. Every request passes
 one middleware stack, so they attach there without touching a route.

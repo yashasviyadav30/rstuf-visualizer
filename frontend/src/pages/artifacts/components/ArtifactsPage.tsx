@@ -40,7 +40,14 @@ export function ArtifactsPage() {
   return (
     <>
       <div className="toolbar">
+        {/* A placeholder is a hint, not a name: it disappears the moment
+            someone types, and a screen reader announcing an unnamed field
+            has nothing to say about it. */}
+        <label className="visually-hidden" htmlFor="artifact-search">
+          Search artifacts by path, across every bin
+        </label>
         <input
+          id="artifact-search"
           type="search"
           placeholder="Search by path, across every bin…"
           value={typed}
