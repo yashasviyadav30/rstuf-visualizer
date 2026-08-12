@@ -10,6 +10,14 @@ name = "pypi"
 [packages]
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
+# Named here only to carry the marker uvicorn's own metadata does not.
+#
+# The standard extra pulls uvloop, which does not build on Windows and says
+# so. Without the marker the lock offers it to every platform: locking on
+# Windows drops it and its hashes, so the Linux image cannot pin it, and
+# locking on Linux offers it to Windows, where installing fails outright.
+# Stated once here, both work.
+uvloop = {version = "*", markers = "sys_platform != 'win32'"}
 pydantic-settings = "*"
 tuf = "*"
 securesystemslib = {extras = ["crypto"], version = "*"}
