@@ -63,12 +63,24 @@ inferring.
 An empty folder on the other three would make the tree look symmetrical and
 tell a reader nothing.
 
-## No router
+## A hash router, not a path router
 
-Four tabs, one page, and no address bar state. A router would earn its place
-the moment a screen needs a link someone can send.
+Each screen has an address: `#/roots`, `#/artifacts`, `#/status`. That is the
+point of routing them at all — "look at the root history of this repository"
+is a thing one person says to another, and a tab that only exists in memory
+cannot carry it.
 
-The cost: no deep links, and reloading returns to the first tab.
+The hash is the part that needs explaining. A path router would give cleaner
+addresses, `/roots` rather than `#/roots`, but a browser asks the server for
+`/roots` on a reload, and the server has to answer with `index.html` for it
+to work. FastAPI's `frontend()` takes a `fallback` argument that looks like
+it does this; it was tested, with `fallback="index.html"`, and `/artifacts`
+still returned 404. Making it work would mean a catch-all route of our own,
+and a catch-all that serves HTML would also swallow requests to API paths
+that do not exist, answering an API consumer's mistake with a web page.
+
+Everything after the `#` never reaches the server, so a hash router needs no
+server change and cannot take an honest 404 away from anyone.
 
 ## One service class, not several
 

@@ -12,8 +12,8 @@ import { useStatus } from '../hooks/useStatus';
  * what is waiting to be signed. The trust picture comes from the signed
  * metadata alone.
  */
-export function StatusPage({ active }: { active: boolean }) {
-  const { data, isFetching, error } = useStatus(active);
+export function StatusPage() {
+  const { data, isFetching, error } = useStatus();
 
   if (isFetching || (!data && !error))
     return <p className="muted">Asking…</p>;

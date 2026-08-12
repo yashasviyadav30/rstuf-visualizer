@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { getRoots } from '../endpoints/roots';
 
-/** Read only when the tab is opened; nobody lands here first. */
-export function useRoots(enabled: boolean) {
-  return useQuery({ queryKey: ['roots'], queryFn: getRoots, enabled });
+/** Read when this screen is routed to; nobody lands here first. */
+export function useRoots() {
+  return useQuery({ queryKey: ['roots'], queryFn: getRoots });
 }

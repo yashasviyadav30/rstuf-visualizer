@@ -18,8 +18,8 @@ import { useRoots } from '../hooks/useRoots';
  * An archived root corrupted or swapped after the fact therefore goes
  * unnoticed by every normal client. Reading the history is what finds it.
  */
-export function RootHistoryPage({ active }: { active: boolean }) {
-  const { data, isFetching, error } = useRoots(active);
+export function RootHistoryPage() {
+  const { data, isFetching, error } = useRoots();
 
   if (error) return <ErrorBanner error={error} />;
   if (isFetching || !data)

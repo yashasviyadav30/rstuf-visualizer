@@ -23,12 +23,12 @@ import { ArtifactTable } from './ArtifactTable';
  * of bins with counts, and reads nothing else until a bin is opened or a
  * search is typed.
  */
-export function ArtifactsPage({ active }: { active: boolean }) {
+export function ArtifactsPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [typed, setTyped] = useState('');
   const search = useDebounced(typed);
 
-  const bins = useBins(active);
+  const bins = useBins();
   const page = useArtifactPage(search ? null : selected, search);
 
   if (bins.error) return <ErrorBanner error={bins.error} />;

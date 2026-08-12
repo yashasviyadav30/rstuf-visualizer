@@ -5,6 +5,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { HashRouter } from 'react-router';
 
 import { App } from './App';
 import './styles/main.css';
@@ -32,7 +33,9 @@ const queries = new QueryClient({
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queries}>
-      <App />
+      <HashRouter>
+        <App />
+      </HashRouter>
     </QueryClientProvider>
   </StrictMode>,
 );

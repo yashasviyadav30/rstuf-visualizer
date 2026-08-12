@@ -538,7 +538,13 @@ application.frontend("/", directory=str(FRONTEND_DIR))
 ```
 
 It is registered last, so API routes and the health probe are matched first
-and the interface only answers for paths nothing else claimed. One image, one
+and the interface only answers for paths nothing else claimed.
+
+The interface routes its four screens behind a hash, `#/roots` and so on, so
+each has an address that can be sent and reopened. Nothing after the `#`
+reaches the server, which is why this needs no catch-all route here: a
+catch-all serving `index.html` would also answer a mistyped API path with a
+web page. One image, one
 origin, and no cross-site arrangement for a browser to negotiate.
 
 The interface is React and TypeScript, compiled by Vite, so the image builds

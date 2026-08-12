@@ -11,6 +11,8 @@ the only layer that knows the difference.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from tests.base import BrowserTestCase
@@ -87,7 +89,7 @@ class TestArtifacts(BrowserTestCase):
         self, page: Page, visualizer_url
     ) -> None:
         page.goto(visualizer_url("good"))
-        page.get_by_role("button", name="Artifacts").click()
+        page.get_by_role("link", name="Artifacts").click()
 
         expect(page.get_by_text("bins-0")).to_be_visible()
         expect(page.get_by_text("bins-1")).to_be_visible()
@@ -101,7 +103,7 @@ class TestArtifacts(BrowserTestCase):
         self, page: Page, visualizer_url
     ) -> None:
         page.goto(visualizer_url("good"))
-        page.get_by_role("button", name="Artifacts").click()
+        page.get_by_role("link", name="Artifacts").click()
         page.get_by_role("button", name="bins-0", exact=False).click()
 
         rows = page.locator("table.table tbody tr")
@@ -125,7 +127,7 @@ class TestRootHistory(BrowserTestCase):
         sound one.
         """
         page.goto(visualizer_url("good"))
-        page.get_by_role("button", name="Root history").click()
+        page.get_by_role("link", name="Root history").click()
 
         expect(page.get_by_text("How root reached version 3")).to_be_visible()
         expect(page.get_by_text("NOT signed by")).to_have_count(0)
@@ -140,7 +142,7 @@ class TestRootHistory(BrowserTestCase):
         signs with one key, versions 2 and 3 with two.
         """
         page.goto(visualizer_url("good"))
-        page.get_by_role("button", name="Root history").click()
+        page.get_by_role("link", name="Root history").click()
 
         expect(
             page.get_by_text("signed by its own keys (1 of 1)")
@@ -153,9 +155,37 @@ class TestRootHistory(BrowserTestCase):
         self, page: Page, visualizer_url
     ) -> None:
         page.goto(visualizer_url("good"))
-        page.get_by_role("button", name="Root history").click()
+        page.get_by_role("link", name="Root history").click()
 
         expect(page.get_by_text("no earlier version was read")).to_be_visible()
+
+
+class TestAddresses(BrowserTestCase):
+    """Each screen has an address that can be copied, sent and reopened."""
+
+    def test_a_screen_can_be_opened_directly(
+        self, page: Page, visualizer_url
+    ) -> None:
+        page.goto(f"{visualizer_url('good')}/#/roots")
+
+        expect(page.get_by_text("How root reached version 3")).to_be_visible()
+
+    def test_the_address_follows_the_screen(
+        self, page: Page, visualizer_url
+    ) -> None:
+        page.goto(visualizer_url("good"))
+        page.get_by_role("link", name="Artifacts").click()
+
+        expect(page).to_have_url(re.compile(r"#/artifacts$"))
+
+    def test_an_address_nobody_published_still_answers(
+        self, page: Page, visualizer_url
+    ) -> None:
+        page.goto(f"{visualizer_url('good')}/#/no-such-screen")
+
+        expect(page.get_by_text("No such screen")).to_be_visible()
+        # The header belongs to every screen, including this one.
+        expect(page.get_by_text("All healthy")).to_be_visible()
 
 
 class TestStatus(BrowserTestCase):
@@ -165,7 +195,7 @@ class TestStatus(BrowserTestCase):
         """The repository is read and verified without it, because none of
         the trust picture comes from there."""
         page.goto(visualizer_url("good"))
-        page.get_by_role("button", name="Status").click()
+        page.get_by_role("link", name="Status").click()
 
         expect(
             page.get_by_text("No RSTUF API is configured", exact=False)

@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { useState } from 'react';
+import { Route, Routes } from 'react-router';
 
 import { HealthBadge } from './components/HealthBadge';
-import { Tabs, type TabId } from './components/Tabs';
+import { Tabs } from './components/Tabs';
 import { ArtifactsPage } from './pages/artifacts/components/ArtifactsPage';
 import { OverviewPage } from './pages/overview/components/OverviewPage';
 import { useOverview } from './pages/overview/hooks/useOverview';
@@ -13,7 +13,8 @@ import { RootHistoryPage } from './pages/roots/components/RootHistoryPage';
 import { StatusPage } from './pages/status/components/StatusPage';
 
 export function App() {
-  const [tab, setTab] = useState<TabId>('roles');
+  // Read once, above the routes, because the header carries the repository's
+  // verdict on every screen and the refresh button belongs to all of them.
   const { overview, loading, error, refresh } = useOverview();
 
   return (
@@ -29,37 +30,39 @@ export function App() {
         </div>
       </header>
 
-      <Tabs active={tab} onSelect={setTab} />
+      <Tabs />
 
       <main className="container">
-        {/* Each panel is mounted only once its tab has been opened, and stays
-            mounted afterwards. That is what keeps landing on this page from
-            reading every bin in the repository, while switching back to a tab
-            does not ask again. */}
-        {tab === 'roles' && (
-          <section className="panel is-active">
-            <OverviewPage
-              overview={overview}
-              loading={loading}
-              error={error}
+        {/* A screen is mounted when it is routed to and unmounted when it is
+            left, so landing on this page never reads every bin in the
+            repository. Switching back does not ask again either: the answers
+            are held by the query cache, keyed on what was asked for. */}
+        <section className="panel is-active">
+          <Routes>
+            <Route
+              index
+              element={
+                <OverviewPage
+                  overview={overview}
+                  loading={loading}
+                  error={error}
+                />
+              }
             />
-          </section>
-        )}
-        {tab === 'roots' && (
-          <section className="panel is-active">
-            <RootHistoryPage active />
-          </section>
-        )}
-        {tab === 'artifacts' && (
-          <section className="panel is-active">
-            <ArtifactsPage active />
-          </section>
-        )}
-        {tab === 'status' && (
-          <section className="panel is-active">
-            <StatusPage active />
-          </section>
-        )}
+            <Route path="/roots" element={<RootHistoryPage />} />
+            <Route path="/artifacts" element={<ArtifactsPage />} />
+            <Route path="/status" element={<StatusPage />} />
+            {/* An address nobody published still has to answer. */}
+            <Route
+              path="*"
+              element={
+                <p className="muted">
+                  No such screen. Try one of the tabs above.
+                </p>
+              }
+            />
+          </Routes>
+        </section>
       </main>
 
       <footer className="footer">

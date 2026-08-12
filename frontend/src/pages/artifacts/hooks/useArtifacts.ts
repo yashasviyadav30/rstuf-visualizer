@@ -10,13 +10,9 @@ import type { ArtifactPageState } from '../types/artifacts';
 
 export const PAGE_SIZE = 50;
 
-/** The bin list, asked for once when the tab is first opened. */
-export function useBins(enabled: boolean) {
-  return useQuery({
-    queryKey: ['artifact-bins'],
-    queryFn: getBins,
-    enabled,
-  });
+/** The bin list, asked for once when this screen is first opened. */
+export function useBins() {
+  return useQuery({ queryKey: ['artifact-bins'], queryFn: getBins });
 }
 
 /**
