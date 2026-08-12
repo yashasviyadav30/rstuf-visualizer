@@ -92,8 +92,8 @@ export function ArtifactsPage() {
         </Banner>
       )}
 
-      <div className="split">
-        <div className="col col--narrow">
+      <div className="split split--index">
+        <div className="col">
           <h2 className="section-title">Bins</h2>
           <BinList
             bins={bins.data?.bins ?? []}

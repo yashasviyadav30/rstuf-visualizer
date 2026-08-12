@@ -156,16 +156,20 @@ main { padding: 1.25rem 0 2.5rem; }
 
 /* ---- delegation graph ----
  *
- * Node positions come from the layout in app.js, so nothing here assumes a
- * shape. These rules only decide how a node looks once it has a place.
+ * Node positions are computed in pages/overview/tree.ts, so nothing here
+ * assumes a shape. These rules only decide how a node looks once it has a
+ * place.
  */
 .tree {
   border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem;
   overflow: auto;
 }
-.graph { display: block; max-width: 100%; height: auto; }
+.tree svg { display: block; max-width: 100%; height: auto; }
 
-.graph__edges path {
+/* A path with no rule at all is filled black and drawn with no stroke, so a
+   curve becomes a wedge and a straight line disappears. Both were happening.
+*/
+.gedge {
   fill: none; stroke: var(--border); stroke-width: 1.5;
 }
 
@@ -274,8 +278,13 @@ input[type="search"]::placeholder { color: var(--muted); }
 /* --- added with the React interface ------------------------------------ */
 
 /* The bin list beside the artifact table. Narrow on purpose: it is an index,
-   and the table beside it is what a reader came for. */
-.col--narrow { flex: 0 0 220px; }
+   and the table beside it is what a reader came for. Declared on the grid
+   rather than on the column, because a grid ignores an item asking for its
+   own width. */
+.split--index { grid-template-columns: 240px 1fr; }
+@media (max-width: 1000px) {
+  .split--index { grid-template-columns: 1fr; }
+}
 
 .bins { list-style: none; margin: 0; padding: 0; max-height: 60vh;
         overflow-y: auto; }
