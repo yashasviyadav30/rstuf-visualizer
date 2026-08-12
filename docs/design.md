@@ -210,6 +210,21 @@ From the rule, the library derives every delegated role name. A repository
 with `bit_length = 4` yields sixteen roles, `bins-0` through `bins-f`. Nothing
 is downloaded to learn this, and no role name appears in our code.
 
+That rule is **`succinct_roles`, which comes from
+[TAP 15](https://github.com/theupdateframework/taps/blob/master/tap15.md)
+rather than from the specification itself.** The distinction is worth keeping
+straight. The specification's own hash-bin mechanism is `path_hash_prefixes`,
+where every delegated role is written out by name in the parent's
+`delegations`. TAP 15 replaces that list with a rule: `2^bit_length` bins,
+each named by a prefix and a zero-padded hex index, all sharing one set of
+keys and one threshold, and each terminating.
+
+RSTUF publishes `succinct_roles`, and python-tuf implements it, which is why
+two hundred and fifty-six bins cost nothing to name here. Code that reads
+`delegations.roles` instead finds an empty list against a real RSTUF
+repository. Both forms are handled, because a repository is free to use
+either.
+
 ### Opening one delegated role
 
 A role's contents load only when someone opens it. The parent checks the
@@ -419,13 +434,14 @@ Comparing two versions reports what changed: version and expiry, keys added,
 removed or altered, thresholds, which keys began signing, and which stopped.
 This is how a signer confirms a rotation went as intended.
 
-Old versions are fetched by their spec-defined names, `1.root.json` onward,
-and checked before anything is shown: the specification's rotation rule says
-version N must be signed to threshold by the keys of version N−1 *and* by its
-own, and the library's `get_verification_result` applies exactly that check
-to each
-step of the chain. An unverifiable version is shown as unverifiable, never as
-history.
+Old versions are fetched by the names the specification gives them under
+consistent snapshots, `1.root.json` onward (§ 6.2.1), and checked before
+anything is shown. The rotation rule is § 5.3 step 4: version N+1 must be
+signed by a threshold of the keys named in version N **and** by a threshold
+of the keys it names itself. The library's `get_verification_result` applies
+exactly that check to each step of the chain, and reports the outcome instead
+of raising it, which is what lets a failure be displayed rather than stop the
+screen. An unverifiable version is shown as unverifiable, never as history.
 
 The walk starts at the root the client already verified and runs backwards,
 which is the only direction that proves anything. Confirming that version
@@ -441,9 +457,12 @@ the fact therefore goes unnoticed by every normal client. Reading the history
 is what finds it.
 
 One detail that would otherwise mislead: a superseded version is not graded
-for expiry. Old roots lapse as a matter of course, and a client checks expiry
-on the final root alone, so painting version 1 red would raise an alarm about
-a file nothing depends on.
+for expiry, and that follows the specification rather than taste. Section 5.3
+walks the chain of roots and says of each intermediate version that its
+expiry "does not matter yet" (step 6); the check happens once, at step 10, on
+the final trusted root. Old roots lapse as a matter of course, so painting
+version 1 red would raise an alarm about a file no client is required to care
+about.
 
 ### Serving the file a role was verified from
 
