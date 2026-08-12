@@ -735,11 +735,11 @@ backend/
 frontend/                   React and TypeScript, built by Vite
 ├── index.html              the entry point
 ├── openapi.json            the backend's schema, and the source of the types
+├── eslint.config.js
 └── src/
     ├── api/                one fetch wrapper, and generated types
-    ├── components/         what more than one page uses
-    ├── hooks/              one request, and the three things a screen needs
-    └── pages/              one folder per tab, each with its own
+    ├── components/         what more than one screen uses
+    └── pages/              one folder per screen, each with its own
                             components, endpoints, hooks and types
 ```
 
@@ -747,6 +747,11 @@ frontend/                   React and TypeScript, built by Vite
 purpose. It fetches nothing and reads no source; it turns metadata the client
 already verified into the shapes above. Filing it as a repository would name
 it after something it does not do.
+
+A screen has no `types/` folder unless it has types of its own. Three of
+the four take their shapes from `api/` and pass props used in one place;
+inventing a fourth folder for them would make the tree symmetrical and say
+nothing.
 
 `metadata_service.py` is one class rather than several. The cache and its
 per-key lock are state on that object, and they are what stops two

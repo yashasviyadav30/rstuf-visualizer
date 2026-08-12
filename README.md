@@ -239,9 +239,8 @@ frontend/                React and TypeScript, built by Vite
 ├── openapi.json         the backend's schema; the types come from it
 └── src/
     ├── api/             one fetch wrapper, and generated types
-    ├── components/      what more than one page uses
-    ├── hooks/           one request, and what a screen needs to know
-    └── pages/           one folder per tab, with its own components,
+    ├── components/      what more than one screen uses
+    └── pages/           one folder per screen, with its own components,
                          endpoints, hooks and types
 charts/rstuf-visualizer/ the Helm chart
 Dockerfile               builds both halves into one image

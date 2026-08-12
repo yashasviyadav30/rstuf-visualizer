@@ -116,12 +116,15 @@ def main() -> int:
                     # actually for.
                     page.get_by_role("button", name="root", exact=True).click()
                 else:
-                    page.get_by_role("button", name=label).click()
+                    # The screens are links now, each with its own address.
+                    page.get_by_role("link", name=label).click()
                 # The artifacts screen reads nothing until a bin is opened,
                 # so open one: a picture of the empty state would say less
                 # about the screen than the screen says about itself.
                 if label == "Artifacts":
-                    page.get_by_role("button", name="bins-0").click()
+                    page.get_by_role(
+                        "button", name="bins-0", exact=False
+                    ).click()
                 page.wait_for_timeout(400)
                 page.screenshot(path=str(IMAGES / f"{name}.png"))
                 print(f"wrote docs/images/{name}.png")
