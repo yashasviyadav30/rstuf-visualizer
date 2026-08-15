@@ -174,6 +174,17 @@ def _walk(
             )
             break
 
+        # The file has to be the version that was asked for. A server that
+        # answers 3.root.json with version 7 would pass every signature
+        # check, since the document is genuine, while the rotations were
+        # then checked against the wrong pairs.
+        if document.signed.version != version:
+            history.message = (
+                f"Version {version} of root answered with version "
+                f"{document.signed.version}, so the history stops here"
+            )
+            break
+
         older = RootRevision(
             version=document.signed.version,
             expires=document.signed.expires,

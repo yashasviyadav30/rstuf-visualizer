@@ -431,3 +431,20 @@ class TestApiUnreachable(RepositoryTestCase):
 
         # The panel that does depend on the API says so, and only that panel.
         assert status["available"] is False
+
+
+class TestArtifactsFromABinThatDidNotVerify(RepositoryTestCase):
+    """A bin that failed its check has contents nobody should be shown.
+
+    Listing them would put artifacts on the page under a signature that did
+    not check out, or from a version the repository has moved past, with
+    nothing on the page saying so.
+    """
+
+    def test_a_rolled_back_bin_contributes_no_artifacts(
+        self, visualizer
+    ) -> None:
+        body = visualizer("rolled-back").get("/api/v1/artifacts").json()
+
+        assert "bins-0" in body["unavailable"]
+        assert all(item["role"] != "bins-0" for item in body["artifacts"])

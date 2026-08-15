@@ -36,7 +36,7 @@ from tuf.api.exceptions import (
     LengthOrHashMismatchError,
     RepositoryError,
 )
-from tuf.api.metadata import Metadata
+from tuf.api.metadata import Metadata, Targets
 from tuf.ngclient import Updater, UpdaterConfig
 
 from app.dto.schemas import RoleStatus
@@ -229,7 +229,7 @@ def _delegated_versions(
 
     The names come from the delegation rule in ``targets`` and the versions
     from ``snapshot``. Both files are already verified, so a repository with
-    two hundred bins costs nothing to describe.
+    256 bins cost nothing to describe.
     """
     targets = documents.get("targets")
     if targets is None:
@@ -294,9 +294,8 @@ def _read_trust_directory(
 #
 # The length caps bound how much is read before giving up, so a server
 # cannot answer a request for timestamp.json with an endless stream. The
-# numbers are generous for real metadata: a repository with two hundred and
-# fifty-six bins has a snapshot listing all of them, and it is nowhere near
-# two megabytes.
+# numbers are generous for real metadata: a repository with 256 bins has a
+# snapshot listing all of them, and it is nowhere near two megabytes.
 #
 # max_root_rotations is what makes pinning a root safe to do once and leave
 # alone. The client walks forward from whatever version it was handed,
@@ -399,9 +398,17 @@ def _pin_mismatch(
     Returns the wording for the mismatch, or ``None`` when it agrees.
     """
     snapshot = view.documents.get("snapshot")
-    meta = getattr(snapshot.signed, "meta", {}).get(f"{name}.json")
+    meta = (
+        getattr(snapshot.signed, "meta", {}).get(f"{name}.json")
+        if snapshot
+        else None
+    )
     if meta is None:
-        return None
+        # python-tuf refuses a delegated role snapshot does not list, and so
+        # does this. Without that entry there is nothing to check the file
+        # against, and accepting it would mean trusting the file's own word
+        # for which role it is and which version.
+        return f"snapshot records nothing for {name}"
 
     if meta.version is not None and child.signed.version != meta.version:
         return (
@@ -453,6 +460,10 @@ def _fetch_delegated(
         url, limit=DELEGATED_MAX_BYTES, timeout=timeout, what=name
     )
     child: Metadata = Metadata.from_bytes(raw)
+    if not isinstance(child.signed, Targets):
+        raise MetadataUnavailableError(
+            f"{url} is {type(child.signed).__name__} metadata, not targets"
+        )
 
     result = targets.signed.get_verification_result(
         name, child.signed_bytes, child.signatures

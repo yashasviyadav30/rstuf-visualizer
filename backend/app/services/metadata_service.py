@@ -38,6 +38,7 @@ from app.dto.schemas import (
     OverviewResponse,
     RepositoryState,
     RoleDetailResponse,
+    RoleStatus,
     RootsResponse,
     StatusResponse,
 )
@@ -54,8 +55,8 @@ logger = logging.getLogger(__name__)
 OVERVIEW_KEY = "overview"
 
 # How many delegated roles to fetch at once when gathering artifacts. Enough
-# to hide the round trips, few enough that a repository with two hundred and
-# fifty-six bins does not arrive at the storage server all at the same moment.
+# to hide the round trips, few enough that a repository with 256 bins does
+# not arrive at the storage server all at the same moment.
 DELEGATED_FETCH_LIMIT = 8
 
 # How recently the repository must have been read for a refresh to be turned
@@ -329,7 +330,11 @@ class MetadataService:
 
         unavailable: list[str] = []
         for name, loaded in results:
-            if loaded is None:
+            # A role that could not be read and one that did not verify are
+            # both roles whose contents nobody should be shown. Listing the
+            # second would put artifacts on the page under a signature that
+            # failed, or from a version the repository has moved past.
+            if loaded is None or loaded.status is not RoleStatus.VALID:
                 unavailable.append(name)
                 continue
             for path, length, hashes in loaded.artifacts:
