@@ -15,7 +15,7 @@
 # image that ships. Versions come from uv.lock and are installed with their
 # hashes, so a build either produces the audited dependency set or fails.
 
-FROM python:3.13-slim AS dependencies
+FROM python:3.14-slim AS dependencies
 
 RUN pip install --no-cache-dir uv==0.12.4
 
@@ -44,7 +44,7 @@ RUN npm run build
 
 # --- runtime ----------------------------------------------------------------
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.title="RSTUF Visualizer" \
       org.opencontainers.image.description="Read-only web view of a TUF \
