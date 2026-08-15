@@ -17,8 +17,8 @@ import { ArtifactTable } from './ArtifactTable';
 /**
  * Artifacts, a bin at a time.
  *
- * Dumping every artifact on one screen is wrong twice over: with two hundred
- * and fifty-six bins the first load reads the whole repository, and the table
+ * Dumping every artifact on one screen is wrong twice over: with 256 bins
+ * the first load reads the whole repository, and the table
  * it produces is not something a person can use. So the tab opens as a list
  * of bins with counts, and reads nothing else until a bin is opened or a
  * search is typed.

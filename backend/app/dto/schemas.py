@@ -210,7 +210,7 @@ class ArtifactBinsResponse(BaseModel):
     """Every role holding artifacts, so the browser can open one at a time.
 
     The interface asks for this before it asks for artifacts, which is what
-    keeps a repository of two hundred bins from sending two hundred bins to
+    keeps a repository of 256 bins from sending 256 bins to
     draw one screen.
     """
 

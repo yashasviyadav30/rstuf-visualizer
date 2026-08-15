@@ -3,7 +3,7 @@
 #
 # The real work lives in backend/Makefile, and this file delegates rather
 # than repeating it. That matters: those targets build the image with
-# `-f ../Dockerfile ..` and lint the chart at `../charts/`, and tox and
+# `-f ../Dockerfile ..` and lint the chart at `../charts/`, and uv and
 # pytest both read their configuration expecting to start from backend/.
 # Copying the commands up here would quietly change every one of those paths.
 

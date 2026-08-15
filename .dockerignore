@@ -11,7 +11,6 @@
 backend/tests
 backend/fixtures
 backend/scripts
-backend/tox.ini
 backend/Makefile
 .pre-commit-config.yaml
 

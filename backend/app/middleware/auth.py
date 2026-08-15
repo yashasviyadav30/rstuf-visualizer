@@ -15,9 +15,8 @@ a delegation, rotating a key or deciding who may do either are all requests
 that have to know who is asking.
 
 The seam sits in front of the handlers because every request already passes
-one door. When it lands, ``require_caller`` becomes a dependency on the
-routes that change something, and the metadata layer below never learns that
-callers exist.
+one door, and the metadata layer below never has to learn that callers
+exist.
 """
 
 from __future__ import annotations

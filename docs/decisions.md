@@ -99,22 +99,6 @@ a visitor. What changes that is write access, and the seam sits in front of
 the handlers because per-role permissions ask about the caller, not about
 the metadata.
 
-## Pull requests larger than 500 lines
-
-The rule asked for was under 500, and it is right for day-to-day work.
-
-Landing a finished project does not fit it. About 9,900 reviewable lines would
-be roughly twenty pull requests, which cannot be read in the time available,
-and a stack that deep breaks whenever an earlier branch moves. The work is cut
-into eight instead, in dependency order, six of them between 550 and 1,000
-lines.
-
-The two large ones split further if that is preferred: the tests divide into
-unit, integration and browser; the last divides into the chart and the
-documents.
-
----
-
 ## Not done, and why
 
 **Component tests, everywhere.** Twenty-five tests cover the pieces where

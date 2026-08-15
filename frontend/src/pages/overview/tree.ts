@@ -28,8 +28,8 @@ const MARGIN = 14;
  *
  * The edges come from the response, so nothing here decides that timestamp
  * hangs off root or that bins hang off targets. Delegated roles are left out
- * and stand behind one group node, because a repository may hold two hundred
- * and fifty-six of them and drawing each would hide the structure.
+ * and stand behind one group node, because a repository may hold 256 of
+ * them and drawing each would hide the structure.
  */
 export function treeModel(overview: OverviewResponse): TreeModel {
   const roles = new Map((overview.roles ?? []).map((role) => [role.name, role]));
