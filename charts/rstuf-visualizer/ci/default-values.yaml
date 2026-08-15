@@ -8,5 +8,5 @@ metadataUrl: "http://rstuf-metadata/"
 apiUrl: "http://rstuf-api"
 
 image:
-  repository: ghcr.io/repository-service-tuf/rstuf-visualizer
+  repository: ghcr.io/yashasviyadav30/rstuf-visualizer
   tag: "0.1.0"

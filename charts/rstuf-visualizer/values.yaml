@@ -4,12 +4,10 @@
 
 replicaCount: 1
 
-# Where the image lives once this chart is published by the RSTUF
-# organisation. Nothing is published there yet, so an install before that
-# happens needs this pointed at wherever the image was actually built; the
-# chart's own CI overrides it for exactly that reason.
+# Where this repository's own workflow publishes the image, so an install
+# needs no extra flag. Point it elsewhere to run an image you built.
 image:
-  repository: ghcr.io/repository-service-tuf/rstuf-visualizer
+  repository: ghcr.io/yashasviyadav30/rstuf-visualizer
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

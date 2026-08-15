@@ -144,10 +144,9 @@ ask the index for a chart that is not in it yet.
 ## What is still open
 
 **The image the chart points at.** `image.repository` defaults to
-`ghcr.io/repository-service-tuf/rstuf-visualizer`, which is where it belongs
-once this lives in the org, and where nothing is published today. Until then
-an install needs `--set image.repository=` pointing at wherever the image was
-built. The chart's own CI does exactly that and pretends nothing.
+`ghcr.io/yashasviyadav30/rstuf-visualizer`, where this repository's workflow
+publishes it. Moving the chart into the org means moving the image too, and
+the default changes with it.
 
 **Whether the org wants it.** That is a question about scope, not a technical
 blocker: everything needed to publish it is in the two changes above.

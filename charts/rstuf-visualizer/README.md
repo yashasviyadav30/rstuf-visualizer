@@ -55,7 +55,7 @@ checked.
 | `trustedRoot.key` | `trusted-root` | key within that Secret |
 | `cacheTtlSeconds` | `30` | how long a verified view stays reusable |
 | `requestTimeoutSeconds` | `10` | ceiling on any single upstream request |
-| `image.repository` | `ghcr.io/repository-service-tuf/rstuf-visualizer` | |
+| `image.repository` | `ghcr.io/yashasviyadav30/rstuf-visualizer` | |
 | `image.tag` | chart `appVersion` | |
 | `service.type` | `ClusterIP` | |
 | `service.port` | `80` | |
