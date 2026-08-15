@@ -24,26 +24,26 @@ jobs:
         with:
           python-version: '3.13'
 
-      # --deploy fails when Pipfile.lock has drifted from Pipfile, so a
+      # --locked fails when uv.lock has drifted from pyproject.toml, so a
       # dependency added without relocking is caught here rather than in a
       # build that quietly resolves something else.
       - name: Install dependencies
         run: |
-          pip install --no-cache-dir pipenv
-          pipenv install --dev --deploy --system
+          pip install --no-cache-dir uv
+          uv sync --locked
 
       - name: Lint
         run: |
-          flake8 app tests scripts
-          black -l79 --check --diff app tests scripts
-          isort -l79 --profile black --check --diff app tests scripts
-          bandit -q -r app
+          uv run flake8 app tests scripts
+          uv run black --check --diff app tests scripts
+          uv run isort --check --diff app tests scripts
+          uv run bandit -q -r app
 
       # The test repositories are generated rather than committed, because
       # they carry short-lived expiry dates. conftest builds them when they
       # are missing, so nothing extra is needed here.
       - name: Test
-        run: pytest -q
+        run: uv run pytest -q
 
   interface:
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       # `npm ci` fails when package-lock.json has drifted from package.json,
-      # the same guarantee `pipenv install --deploy` gives the backend.
+      # the same guarantee `uv sync --locked` gives the backend.
       - name: Install dependencies
         run: npm ci
 
@@ -106,10 +106,10 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: |
-          pip install --no-cache-dir pipenv
-          pipenv install --dev --deploy --system
-          playwright install --with-deps chromium
+          pip install --no-cache-dir uv
+          uv sync --locked
+          uv run playwright install --with-deps chromium
 
       - name: Test
         working-directory: backend
-        run: pytest -q tests/e2e
+        run: uv run pytest -q tests/e2e

@@ -1,9 +1,9 @@
 # Where the dependency files actually live in this repository: the backend
-# is a Pipfile under backend/, the interface an npm project under frontend/,
+# is a uv project under backend/, the interface an npm project under frontend/,
 # and the workflows at the root.
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  - package-ecosystem: "uv"
     directory: "/backend"
     schedule:
       interval: "weekly"
@@ -12,7 +12,7 @@ updates:
       include: "scope"
     open-pull-requests-limit: 10
     groups:
-      pipenv:
+      uv:
         patterns:
           - "*"
 

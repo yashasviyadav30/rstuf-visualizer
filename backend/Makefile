@@ -3,37 +3,37 @@
 # None of it is needed to build or ship the service; it only saves typing.
 
 .PHONY: all setup test test-unit test-integration test-e2e test-docker \
-	screenshots lint tests \
+	screenshots lint \
 	clean purge run-dev run-local stop build-dev reformat \
 	coverage fixtures chart-lint help
 
 all: help
 
 setup:  ## Install the backend's dependencies
-	pipenv install --dev --deploy
+	uv sync
 
 reformat:  ## Reformat code with black and isort
 	black -l 79 .
-	isort -l79 --profile black .
+	uv run isort .
 
 # Two sessions on purpose: see the note in pyproject.toml. The browser tests
 # skip themselves where the interface is not built or no browser is installed,
 # so this is safe to run anywhere.
 test:  ## Run the tests
-	pipenv run pytest
-	pipenv run pytest tests/e2e
+	uv run pytest
+	uv run pytest tests/e2e
 
 test-unit:  ## Run only the tests that reach nothing outside the process
-	pipenv run pytest tests/unit
+	uv run pytest tests/unit
 
 test-integration:  ## Run only the tests driven against a real repository
-	pipenv run pytest tests/integration
+	uv run pytest tests/integration
 
 # The interface has to be compiled and a browser installed before these can
 # run; both are conditions they check and skip on rather than failing.
 test-e2e:  ## Open the built interface in a real browser
-	pipenv run playwright install chromium
-	pipenv run pytest tests/e2e
+	uv run playwright install chromium
+	uv run pytest tests/e2e
 
 # python-tuf caches its trust anchor behind a symbolic link, which Windows
 # refuses without Developer Mode, so the integration tests skip themselves
@@ -41,31 +41,26 @@ test-e2e:  ## Open the built interface in a real browser
 # also what CI does.
 test-docker:  ## Run every test on Linux, where nothing skips
 	docker run --rm -v "$(CURDIR)/..:/w" -w /w/backend python:3.13-slim \
-		bash -c "pip install --quiet --no-cache-dir pipenv \
-		&& pipenv install --dev --deploy --system --quiet \
-		&& pytest -q"
+		bash -c "pip install --quiet --no-cache-dir uv \
+		&& uv sync --quiet && uv run pytest -q"
 
 # Taken rather than drawn, so the pictures in the documents cannot drift
 # from what the interface actually renders.
 screenshots:  ## Photograph each screen for the documents
-	pipenv run playwright install chromium
-	PYTHONPATH=. pipenv run python scripts/screenshots.py
+	uv run playwright install chromium
+	PYTHONPATH=. uv run python scripts/screenshots.py
 
 lint:  ## Run the linters CI runs, in the order it runs them
-	flake8 app tests scripts
-	black -l79 --check --diff app tests scripts
-	isort -l79 --profile black --check --diff app tests scripts
-	bandit -q -r app
+	uv run flake8 app tests scripts
+	uv run black --check --diff app tests scripts
+	uv run isort --check --diff app tests scripts
+	uv run bandit -q -r app
 
-tests:  ## Run the linters and tests in fresh environments, as CI does
-	tox -r
-
-coverage:  ## Run tests with coverage
-	coverage report
-	coverage html -i
+coverage:  ## Run the tests and report what they cover
+	uv run pytest --cov=app --cov-report=term --cov-report=html
 
 fixtures:  ## Generate local TUF repositories for development
-	python scripts/gen_fixture.py
+	uv run python scripts/gen_fixture.py
 
 run-local:  ## Serve a generated repository and read it, without Docker
 	./scripts/run_local.sh

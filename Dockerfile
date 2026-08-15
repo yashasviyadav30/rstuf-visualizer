@@ -11,18 +11,18 @@
 
 # --- dependencies -----------------------------------------------------------
 #
-# Resolved in a throwaway stage so neither pipenv nor a build cache reaches
-# the image that ships. Versions come from Pipfile.lock and are installed with
-# their hashes, so a build either produces the audited dependency set or fails.
+# Resolved in a throwaway stage so neither uv nor a build cache reaches the
+# image that ships. Versions come from uv.lock and are installed with their
+# hashes, so a build either produces the audited dependency set or fails.
 
 FROM python:3.13-slim AS dependencies
 
-RUN pip install --no-cache-dir pipenv==2026.7.1
+RUN pip install --no-cache-dir uv==0.12.4
 
 WORKDIR /build
-COPY backend/Pipfile backend/Pipfile.lock ./
+COPY backend/pyproject.toml backend/uv.lock ./
 
-RUN pipenv requirements --hash > requirements.txt \
+RUN uv export --locked --no-dev --no-emit-project > requirements.txt \
     && python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --require-hashes \
        -r requirements.txt
@@ -31,7 +31,7 @@ RUN pipenv requirements --hash > requirements.txt \
 #
 # The interface is React and TypeScript, so it is compiled here rather than
 # shipped as source. `npm ci` installs exactly what package-lock.json pins and
-# fails if the two have drifted, the same guarantee Pipfile.lock gives above.
+# fails if the two have drifted, the same guarantee uv.lock gives above.
 
 FROM node:22-slim AS interface
 

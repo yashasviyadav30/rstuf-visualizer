@@ -25,7 +25,7 @@ build-frontend:  ## Compile the interface; the backend serves what this writes
 	cd frontend && npm run build
 
 openapi:  ## Refresh the schema the interface's types are generated from
-	cd backend && pipenv run python -c "import json; \
+	cd backend && uv run python -c "import json; \
 		from app.main import create_app; \
 		json.dump(create_app().openapi(), \
 		open('../frontend/openapi.json','w'), indent=2)"

@@ -66,7 +66,7 @@ pointed at its URL.
 ```bash
 make setup                                 # both halves
 make build-frontend                        # the backend serves what this writes
-cd backend && pipenv run ./scripts/run_local.sh
+cd backend && uv run ./scripts/run_local.sh
 ```
 
 While working on the interface, `cd frontend && npm run dev` serves it on
@@ -208,11 +208,11 @@ Three workflows, each running what a developer runs by hand:
 
 | Workflow | Does |
 |---|---|
-| `tests.yml` | installs from `Pipfile.lock`, runs flake8, black, isort, bandit, then pytest |
+| `tests.yml` | installs from `uv.lock`, runs flake8, black, isort, bandit, then pytest |
 | `chart.yml` | lints the chart, builds the image, installs both into a kind cluster and checks the repository verifies |
 | `image.yml` | builds the image, runs it against a generated repository, publishes to ghcr.io on a `v*` tag |
 
-`pipenv install --deploy` is used throughout, so a dependency added without
+`uv sync --locked` is used throughout, so a dependency added without
 relocking fails the build instead of quietly resolving to something else.
 
 ## Layout

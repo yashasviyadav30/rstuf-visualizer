@@ -1,6 +1,5 @@
-# The project's name, version and licence, plus the settings pytest reads
-# when you run the tests. Libraries are not listed here; they live in the
-# Pipfile.
+# The project, its libraries, and the settings the tools read. uv resolves
+# what is listed here into uv.lock, and that lock is what an install reads.
 
 [project]
 name = "rstuf-visualizer"
@@ -8,6 +7,42 @@ version = "0.1.0"
 description = "Read-only web view of a TUF repository managed by RSTUF"
 requires-python = ">=3.13"
 license = { text = "MIT" }
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    # Stated rather than left to the standard extra, so the platform it
+    # belongs to is visible here and not only in the lock.
+    "uvloop; sys_platform != 'win32'",
+    "pydantic-settings",
+    "tuf",
+    "securesystemslib[crypto]",
+    "httpx",
+]
+
+[dependency-groups]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+    "bandit",
+    "coverage",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-playwright",
+    "pre-commit",
+]
+
+# A service, not a library, so there is nothing to build and install.
+[tool.uv]
+package = false
+
+[tool.black]
+line-length = 79
+# Without this black reads requires-python and formats for a version this
+# interpreter cannot parse, which it then warns about on every run.
+target-version = ["py313"]
 
 # Read by isort whether it is run from here, as CI does, or from the
 # repository root, as the git hook does. Without known_first_party the two

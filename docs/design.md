@@ -563,14 +563,13 @@ resolves Python dependencies, and only its output reaches the image that
 ships: no Node, no `node_modules`, no TypeScript.
 
 `npm ci` installs exactly what `package-lock.json` pins and fails when the two
-have drifted, which is the guarantee `pipenv install --deploy` gives on the
+have drifted, which is the guarantee `uv sync --locked` gives on the
 other side.
 
-`Pipfile.lock` is generated on Linux, deliberately. Relocking on Windows
-resolves for that machine and drops what it cannot install, which quietly
-removed uvloop and the hashes the image needs; the dependency stage then
-failed on a requirement it could not pin. The file describes where the
-service runs, not where it was written.
+`uv.lock` records every platform at once. Each entry carries the markers
+that say where it belongs, so `uvloop` is listed with `sys_platform !=
+'win32'` and a Windows install skips it while the Linux image still pins it.
+One lock, resolved anywhere, works everywhere.
 
 The types the interface holds the backend to are generated from the backend's
 own OpenAPI document. Hand-written ones drift; generated ones turn a field
@@ -596,7 +595,7 @@ packages and the application copied into a slim final image.
 ```
 frontend ──npm run build──┐
                           ├─►  one image  ─►  ghcr.io  ─►  chart  ─►  demo
-backend  ──pipenv────────┘
+backend  ──uv────────────┘
 ```
 
 Cross-origin access is off by default and exists for one case: a frontend
