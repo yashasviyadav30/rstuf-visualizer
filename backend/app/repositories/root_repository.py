@@ -27,14 +27,13 @@ from datetime import datetime
 from tuf.api.exceptions import RepositoryError
 from tuf.api.metadata import Metadata, Root
 
-from app.client.tuf_client import MetadataUnavailableError, fetch_within
+from app.client.tuf_client import (
+    ROOT_MAX_BYTES,
+    MetadataUnavailableError,
+    fetch_within,
+)
 
 logger = logging.getLogger(__name__)
-
-# One root file is a few kilobytes. The cap matches the limit the client
-# applies while the body arrives, so a server cannot answer a history
-# request with an endless stream.
-ROOT_MAX_BYTES = 512_000
 
 # How far back to walk unless asked otherwise. A long-lived repository may
 # hold hundreds of versions, and fetching every one of them to draw a page

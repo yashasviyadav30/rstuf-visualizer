@@ -10,7 +10,11 @@ from pathlib import Path
 
 import pytest
 
-from app.client.tuf_client import MetadataUnavailableError, load_repository
+from app.client.tuf_client import (
+    MetadataUnavailableError,
+    load_delegated_role,
+    load_repository,
+)
 from app.dto.schemas import RoleStatus
 from tests.base import RepositoryTestCase
 
@@ -119,3 +123,44 @@ class TestLoadRepository(RepositoryTestCase):
                 trust_dir=tmp_path,
                 bootstrap=bootstrap_root("good"),
             )
+
+
+class TestARolledBackBin(RepositoryTestCase):
+    """A correct signature says a file is genuine, not that it is current.
+
+    An old bin signed by the same online key verifies perfectly while listing
+    artifacts the repository has withdrawn. Snapshot names the version each
+    delegated role should be at, and that entry is what makes the swap
+    visible.
+    """
+
+    @pytest.mark.asyncio
+    async def test_a_bin_older_than_snapshot_pins_is_not_valid(
+        self, tmp_path: Path, serve_fixture, bootstrap_root
+    ) -> None:
+        url = serve_fixture("rolled-back")
+        view = await load_repository(
+            metadata_url=url,
+            trust_dir=tmp_path,
+            bootstrap=bootstrap_root("rolled-back"),
+        )
+
+        delegated = await load_delegated_role(url, view, "bins-0")
+
+        assert delegated.status is RoleStatus.INVALID
+        assert "snapshot pins version 2" in delegated.note
+
+    @pytest.mark.asyncio
+    async def test_the_other_bin_is_unaffected(
+        self, tmp_path: Path, serve_fixture, bootstrap_root
+    ) -> None:
+        url = serve_fixture("rolled-back")
+        view = await load_repository(
+            metadata_url=url,
+            trust_dir=tmp_path,
+            bootstrap=bootstrap_root("rolled-back"),
+        )
+
+        delegated = await load_delegated_role(url, view, "bins-1")
+
+        assert delegated.status is RoleStatus.VALID

@@ -4,11 +4,19 @@
 
 """Fetch and verify a repository's TUF metadata.
 
-Verification is delegated to ``tuf.ngclient.Updater``, the client shipped with
-python-tuf. It resolves the metadata chain, checks signatures, thresholds,
-expiry and rollback, and writes the verified files into a local trust
-directory. This module reads those verified files back to describe the
-repository; it never validates metadata itself.
+The top-level chain is ``tuf.ngclient.Updater``'s work, the client shipped
+with python-tuf. It resolves root, timestamp, snapshot and targets, checks
+signatures, thresholds, expiry and rollback, and writes what it accepted into
+a local trust directory. This module reads those files back to describe the
+repository.
+
+A delegated role is different: the client fetches one only when a target is
+being downloaded, and nothing here downloads targets. So a bin asked for by
+name is fetched here and put through the same three questions the library
+asks of it — does its parent's delegation entry accept the signatures, does
+its version match what snapshot pins, and do the length and hashes snapshot
+records agree. Every one of those is a library call. The judgement is the
+library's; only the order is ours.
 """
 
 from __future__ import annotations
@@ -23,7 +31,11 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from tuf.api.exceptions import DownloadError, RepositoryError
+from tuf.api.exceptions import (
+    DownloadError,
+    LengthOrHashMismatchError,
+    RepositoryError,
+)
 from tuf.api.metadata import Metadata
 from tuf.ngclient import Updater, UpdaterConfig
 
@@ -118,15 +130,17 @@ def resolve_trusted_root(value: str, timeout: float = 10.0) -> bytes:
 
     text = decoded.decode("utf-8", errors="replace").strip()
     if text.startswith(("http://", "https://")):
+        if text.startswith("http://"):
+            # Everything else is checked against what this returns, and
+            # nothing checks this.
+            logger.warning("The trust anchor is fetched over plain HTTP")
         logger.info("Fetching the trust anchor from %s", text)
-        try:
-            response = httpx.get(text, timeout=timeout)
-            response.raise_for_status()
-        except httpx.HTTPError as exc:
-            raise MetadataUnavailableError(
-                f"could not fetch the trust anchor from {text}"
-            ) from exc
-        return response.content
+        return fetch_within(
+            text,
+            limit=ROOT_MAX_BYTES,
+            timeout=timeout,
+            what="the trust anchor",
+        )
 
     return decoded
 
@@ -135,6 +149,9 @@ def resolve_trusted_root(value: str, timeout: float = 10.0) -> bytes:
 # targets metadata, and a bin is targets metadata; matching it means storage
 # meets one limit whichever path asked for the file.
 DELEGATED_MAX_BYTES = 5_000_000
+
+# The library's own ceiling for root metadata, applied to the anchor too.
+ROOT_MAX_BYTES = 512_000
 
 
 def fetch_within(url: str, *, limit: int, timeout: float, what: str) -> bytes:
@@ -364,6 +381,42 @@ def _delegated_url(
     return f"{base}{filename}"
 
 
+def _pin_mismatch(
+    view: RepositoryView,
+    name: str,
+    child: Metadata,
+    raw: bytes,
+) -> str | None:
+    """Check a delegated role against the entry snapshot pins for it.
+
+    A correct signature says the file is genuine. It does not say the file is
+    current, and an old bin signed by the same key verifies perfectly while
+    listing artifacts that were withdrawn. Snapshot names the version, and
+    where the repository publishes them, the length and hashes. That entry is
+    what makes rollback visible, so it is checked and not merely read to
+    build a URL.
+
+    Returns the wording for the mismatch, or ``None`` when it agrees.
+    """
+    snapshot = view.documents.get("snapshot")
+    meta = getattr(snapshot.signed, "meta", {}).get(f"{name}.json")
+    if meta is None:
+        return None
+
+    if meta.version is not None and child.signed.version != meta.version:
+        return (
+            f"{name} is at version {child.signed.version}, and snapshot "
+            f"pins version {meta.version}"
+        )
+
+    try:
+        meta.verify_length_and_hashes(raw)
+    except LengthOrHashMismatchError as exc:
+        return f"{name} does not match what snapshot records for it: {exc}"
+
+    return None
+
+
 def _fetch_delegated(
     metadata_url: str,
     view: RepositoryView,
@@ -404,6 +457,7 @@ def _fetch_delegated(
     result = targets.signed.get_verification_result(
         name, child.signed_bytes, child.signatures
     )
+    pinned = _pin_mismatch(view, name, child, raw)
 
     now = datetime.now(timezone.utc)
     if not result.verified:
@@ -412,6 +466,9 @@ def _fetch_delegated(
             f"{name} was signed by {len(result.signed)} of "
             f"{result.threshold} required keys"
         )
+    elif pinned is not None:
+        status = RoleStatus.INVALID
+        note = pinned
     elif child.signed.expires < now:
         status = RoleStatus.EXPIRED
         note = None

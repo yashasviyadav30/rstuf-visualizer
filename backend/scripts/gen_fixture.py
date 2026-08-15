@@ -6,9 +6,10 @@
 
 Creates three variants under ``fixtures/``:
 
-    good/       every role valid and in date
-    expired/    same keys, but timestamp already past its expiry
-    tampered/   a signed file edited after signing, so its signature fails
+    good/         every role valid and in date
+    expired/      same keys, but timestamp already past its expiry
+    rolled-back/  a bin correctly signed, but older than snapshot pins
+    tampered/     a signed file edited after signing, so its signature fails
 
 The key arrangement mirrors a real RSTUF repository: root is held offline,
 and one shared online key signs everything else. Keys carry the readable
@@ -134,7 +135,11 @@ def _root_version(
     return root
 
 
-def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
+def _build(
+    out_dir: Path,
+    timestamp_expiry_days: int,
+    rolled_back_bin: str | None = None,
+) -> None:
     """Write a complete, signed repository into ``out_dir``."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -192,6 +197,12 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
     for name in BINS:
         snapshot.meta[f"{name}.json"] = MetaFile(version=1)
 
+    # One bin is pinned a version ahead of the file published for it, and
+    # that file is correctly signed. A reader checking only the signature
+    # accepts an artifact list the repository has already moved on from.
+    if rolled_back_bin is not None:
+        snapshot.meta[f"{rolled_back_bin}.json"] = MetaFile(version=2)
+
     # --- timestamp: points at the current snapshot ---
     timestamp = Timestamp(expires=_expiry(timestamp_expiry_days))
     timestamp.snapshot_meta = MetaFile(version=1)
@@ -222,6 +233,13 @@ def _build(out_dir: Path, timestamp_expiry_days: int) -> None:
         )
         metadata.to_file(str(out_dir / filename), JSONSerializer())
 
+    # The version snapshot now points at, holding what version 1 said.
+    if rolled_back_bin is not None:
+        shutil.copy(
+            out_dir / f"1.{rolled_back_bin}.json",
+            out_dir / f"2.{rolled_back_bin}.json",
+        )
+
     # A client bootstraps from the version it is handed and walks forward, so
     # giving it the first one exercises both rotations on every refresh.
     shutil.copy(out_dir / "1.root.json", out_dir / "root.json")
@@ -247,9 +265,14 @@ def main() -> None:
 
     _build(FIXTURES / "good", timestamp_expiry_days=1)
     _build(FIXTURES / "expired", timestamp_expiry_days=-1)
+    _build(
+        FIXTURES / "rolled-back",
+        timestamp_expiry_days=1,
+        rolled_back_bin=BINS[0],
+    )
     _tamper(FIXTURES / "good", FIXTURES / "tampered")
 
-    for variant in ("good", "expired", "tampered"):
+    for variant in ("good", "expired", "rolled-back", "tampered"):
         files = sorted(p.name for p in (FIXTURES / variant).iterdir())
         print(f"{variant:10} {len(files)} files: {', '.join(files)}")
 

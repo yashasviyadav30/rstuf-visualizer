@@ -117,7 +117,9 @@ class MetadataService:
         because it states a falsehood confidently.
         """
         if self._settings.trusted_root:
-            return resolve_trusted_root(
+            # Reaches the network, so it does not run on the event loop.
+            return await asyncio.to_thread(
+                resolve_trusted_root,
                 self._settings.trusted_root,
                 self._settings.request_timeout_seconds,
             )
