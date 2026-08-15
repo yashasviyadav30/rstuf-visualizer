@@ -50,7 +50,7 @@ LABEL org.opencontainers.image.title="RSTUF Visualizer" \
       org.opencontainers.image.description="Read-only web view of a TUF \
 repository managed by Repository Service for TUF" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/repository-service-tuf"
+      org.opencontainers.image.source="https://github.com/yashasviyadav30/rstuf-visualizer"
 
 COPY --from=dependencies /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH" \
