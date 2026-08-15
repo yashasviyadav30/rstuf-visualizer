@@ -33,7 +33,7 @@ RUN uv export --locked --no-dev --no-emit-project > requirements.txt \
 # shipped as source. `npm ci` installs exactly what package-lock.json pins and
 # fails if the two have drifted, the same guarantee uv.lock gives above.
 
-FROM node:22-slim AS interface
+FROM node:26-slim AS interface
 
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
